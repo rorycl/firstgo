@@ -134,19 +134,21 @@ pages:
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := newConfig([]byte(tt.config))
-			if err != nil {
-				if tt.err == nil {
+			if tt.err == nil {
+				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
-				var e ErrInvalidConfig
-				if errors.As(tt.err, &e) {
-					if !errors.As(err, &e) {
-						t.Fatalf("expected ErrInvalidConfig, got %v", err)
-					}
-				}
+				return
 			}
-			if err == nil && tt.err != nil {
-				t.Fatalf("expected error: %T (%v)", tt.err, tt.err)
+			if err == nil {
+				t.Fatalf("expected an error")
+			}
+			var expectedErr ErrInvalidConfig
+			if errors.As(tt.err, &expectedErr) {
+				var actualErr ErrInvalidConfig
+				if !errors.As(err, &actualErr) {
+					t.Fatalf("expected ErrInvalidConfig, got %T", err)
+				}
 			}
 		})
 	}

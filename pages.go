@@ -8,7 +8,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 
-	"text/template"
+	"html/template"
 )
 
 // ErrInvalidConfig reports an invalid yaml configuration file, although
