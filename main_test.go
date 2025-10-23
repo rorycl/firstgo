@@ -56,17 +56,19 @@ func TestMainFlags(t *testing.T) {
 			os.Args = tt.args
 			address, port, configFile, err := flagGet()
 
-			if tt.err == nil && err != nil {
-				t.Fatalf("unexpected err %v", err)
-			}
-			if tt.err != nil && errors.Is(err, tt.err) {
+			if tt.err != nil {
+				if err == nil {
+					t.Fatal("expected an error")
+				}
+				if errors.Is(err, tt.err) && fmt.Sprintf("%T", tt.err) != "*errors.errorString" {
+					t.Fatalf("got error %q expected type %T", err, tt.err)
+				}
 				return
 			}
-			if tt.err != nil && err != nil {
-				// assume ok
-				t.Logf("got err %v (expected %v)", err, tt.err)
-				return
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
 			}
+
 			if got, want := address, tt.address; got != want {
 				t.Errorf("address got %v want %v", got, want)
 			}
