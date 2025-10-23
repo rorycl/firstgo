@@ -67,7 +67,9 @@ func TestServer(t *testing.T) {
 			if err != nil {
 				t.Fatalf("get error: %v", err)
 			}
-			defer resp.Body.Close()
+			defer func() {
+				_ = resp.Body.Close()
+			}()
 
 			if got, want := resp.StatusCode, tt.statusCode; got != want {
 				t.Fatalf("got %d want %d", got, want)

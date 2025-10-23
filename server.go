@@ -75,9 +75,7 @@ func newServer(
 	if len(pages) < 1 {
 		return nil, errors.New("at least one page must be provided")
 	}
-	for _, p := range pages {
-		s.pages = append(s.pages, p)
-	}
+	s.pages = append(s.pages, pages...)
 	return &s, err
 }
 

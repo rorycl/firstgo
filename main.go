@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"strconv"
@@ -29,12 +30,13 @@ func flagGet() (string, string, string, error) {
 	flag.StringVar(&port, "port", "8000", "server network port")
 
 	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
+		// supressing Fprint errors
+		_, _ = fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
 		flag.PrintDefaults()
-		fmt.Fprintln(
+		_, _ = fmt.Fprintln(
 			flag.CommandLine.Output(),
 			"  <configFile>\n    	yaml configuration file")
-		fmt.Fprint(flag.CommandLine.Output(), usage)
+		_, _ = fmt.Fprint(flag.CommandLine.Output(), usage)
 	}
 
 	flag.Parse()
@@ -51,11 +53,11 @@ func flagGet() (string, string, string, error) {
 	// check validity of fields
 	a := net.ParseIP(address)
 	if a == nil {
-		return "", "", "", fmt.Errorf("address %s invalid IP address\n", address)
+		return "", "", "", fmt.Errorf("address %s invalid IP address", address)
 	}
 	_, err := strconv.Atoi(port)
 	if err != nil {
-		return "", "", "", fmt.Errorf("port %s invalid\n", port)
+		return "", "", "", fmt.Errorf("port %s invalid", port)
 	}
 	if _, err = os.Stat(configFile); err != nil {
 		return "", "", "", fmt.Errorf("config file %s could not be found", configFile)
@@ -99,6 +101,8 @@ func main() {
 		Exiter(1)
 		return
 	}
+
+	log.Printf("serving on %s:%s", address, port)
 	err = Serve(server)
 	// err = server.serve()
 	if err != nil {
