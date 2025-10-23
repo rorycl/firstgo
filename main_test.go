@@ -95,7 +95,12 @@ func TestMainMain(t *testing.T) {
 		t.Fatalf("flag parse error at step %s, %v", "one", err)
 	}
 
-	config, err := newConfig(configFile)
+	configBytes, err := os.ReadFile(configFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	config, err := newConfig(configBytes)
 	if err != nil {
 		t.Fatalf("config file error at step %s, %v", "one", err)
 	}

@@ -79,7 +79,14 @@ func main() {
 		return
 	}
 
-	config, err := newConfig(configFile)
+	configBytes, err := os.ReadFile(configFile)
+	if err != nil {
+		fmt.Println(err)
+		Exiter(1)
+		return
+	}
+
+	config, err := newConfig(configBytes)
 	if err != nil {
 		fmt.Println(err)
 		Exiter(1)
