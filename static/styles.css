@@ -10,21 +10,19 @@
         }
         .clickable-zone:hover {
             background-color: rgba(0, 0, 255, 0.1); /* blue with opacity */
-            /* box-shadow: inset 2 0 0 1px rgba(0, 0, 255, * 0.9); blue border */ *
             border: 1px solid rgba(0, 0, 255, 0.7);
         }
         /* CSS tooltip */
         .clickable-zone:hover::after {
             content: attr(title); /* show title attribute */
             position: absolute;
-            bottom: -25px;
+            bottom: -30px;
             left: 0px;
             background-color: rgba(0, 0, 255, 0.9);
             color: white;
-            padding: 2px 8px;
-            border-radius: 2px;
+            padding: 2px 12px 4px 6px;
             font-family: Roboto, sans-serif;
-            font-size: 10px;
+            font-size: 11px;
             opacity: 0.8;
         }
     </style>
