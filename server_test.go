@@ -10,6 +10,7 @@ import (
 )
 
 func initServer(t *testing.T) *server {
+	t.Helper()
 	s, err := newServer(
 		"127.0.0.1",
 		"8001",

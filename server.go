@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"text/template" // not html/template
+	"html/template"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
