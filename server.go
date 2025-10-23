@@ -46,49 +46,68 @@ func (p *page) endpoint() (http.HandlerFunc, error) {
 	if len(p.zones) < 1 {
 		return nil, fmt.Errorf("%s: need a least one zone", p.url)
 	}
-	zone0 := p.zones[0]
+
+	var zonesHTML string
+	for _, zone := range p.zones {
+		zonesHTML += fmt.Sprintf(
+			`<a class="clickable-zone" href="%s" style="left: %dpx; top: %dpx; width: %dpx; height: %dpx;" title="go to %s"></a>`,
+			zone.target,
+			zone.x1,
+			zone.y1,
+			zone.x2-zone.x1, // width
+			zone.y2-zone.y1, // height
+			zone.target,
+		)
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(
-			// rough and ready
-			fmt.Sprintf(
-				`<html><head>
-				       <title>%s</title>
-				       <style>
-					   .area {
-						   z-index: 1;
-						   position: absolute;
-						   background-color: transparent;
-						   left: %dpx;
-						   top: %dpx;
-						   width: %dpx;
-						   height: %dpx;
-						}
-						.area:hover {
-							background-color: blue;
-							opacity: 0.2;
-						}
-						.area:onclick {
-							z-index: -1;
-						}
-					   </style>
-				       </head>
-				       <body>
-					   <img src="%s" usemap="#whatever" />
-					   <map name="whatever">
-							<area shape="rect" 
-							 coords="%d,%d,%d,%d"
-							 alt="xxx"
-							 href="%s"
-					   />
-					   <div class="area"></div>
-					   </body>
-					   </html>`,
-				p.title,
-				zone0.x1, zone0.y1, zone0.x2-zone0.x1, zone0.y2-zone0.y1,
-				p.imagePath,
-				zone0.x1, zone0.y1, zone0.x2, zone0.y2,
-				zone0.target,
-			)))
+		html := fmt.Sprintf(`
+			<html>
+			<head>
+				<title>%s</title>
+				<style>
+					body { margin: 0; } /* check */
+					.image-container {
+						position: relative;
+						display: inline-block;
+					}
+					.clickable-zone {
+						position: absolute;
+						display: block;
+					}
+					.clickable-zone:hover {
+						background-color: rgba(0, 0, 255, 0.1); /* blue with opacity */
+						/* box-shadow: inset 2 0 0 1px rgba(0, 0, 255, * 0.9); blue border */ *
+						border: 1px solid rgba(0, 0, 255, 0.7);
+					}
+					/* CSS tooltip */
+					.clickable-zone:hover::after {
+						content: attr(title); /* show title attribute */
+						position: absolute;
+						bottom: -25px;
+						left: 0px;
+						background-color: rgba(0, 0, 255, 0.9);
+						color: white;
+						padding: 2px 8px;
+						border-radius: 2px;
+						font-family: Roboto, sans-serif;
+						font-size: 10px;
+						opacity: 0.8;
+					}
+				</style>
+			</head>
+			<body>
+				<div class="image-container">
+					<img src="%s" />
+					%s
+				</div>
+			</body>
+			</html>`,
+			p.title,
+			p.imagePath,
+			zonesHTML,
+		)
+		w.Write([]byte(html))
 	}, nil
 }
 
@@ -130,15 +149,16 @@ func (s *server) Health(w http.ResponseWriter, r *http.Request) {
 // }
 
 func (s *server) serve() error {
-	// endpoint routing; gorilla mux is used because "/" in http.NewServeMux
-	// is a catch-all pattern
+	// Endpoint routing; gorilla mux is used because "/" in http.NewServeMux
+	// is a catch-all pattern.
 	r := mux.NewRouter()
 
-	// atach image serving directory
+	// Atach image serving directory.
 	// https://eli.thegreenplace.net/2022/serving-static-files-and-web-apps-in-go/
+	// Note that paths work differently between the standard http handle
+	// and gorilla's mux; PathPrefix is needed in the latter case.
 	imgDir := http.FileServer(http.Dir("images"))
 	r.PathPrefix("/images/").Handler(http.StripPrefix("/images/", imgDir))
-	// r.Handle("/images/", http.StripPrefix("/images/", imgDir))
 
 	r.HandleFunc("/health", s.Health)
 	// r.HandleFunc("/favicon", s.Favicon())
@@ -205,7 +225,7 @@ func main() {
 			zones: []pageZone{
 				pageZone{
 					x1:     367,
-					y1:     94,
+					y1:     44,
 					x2:     539,
 					y2:     263,
 					target: "/detail",
