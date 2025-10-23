@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/goccy/go-yaml"
 
@@ -83,10 +84,14 @@ func (c *config) validateConfig() error {
 
 	// Validate urls.
 	for k, v := range zoneURLMap {
-		if _, ok := urlMap[v]; !ok {
+		if _, ok := urlMap[k]; !ok {
+			pageURLS := []string{}
+			for p := range urlMap {
+				pageURLS = append(pageURLS, p)
+			}
 			return ErrInvalidConfig{fmt.Sprintf(
-				"invalid Zone Target URL %s doesn't point to a page (%s)",
-				k, v,
+				"invalid Zone Target URL %s doesn't point to a page (%s)\npages: %s",
+				k, v, strings.Join(pageURLS, ", "),
 			)}
 		}
 	}
