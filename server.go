@@ -93,17 +93,15 @@ func (s *server) Health(w http.ResponseWriter, r *http.Request) {
 
 // Favicon serves up the favicon
 func (s *server) Favicon(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, path.Join(s.staticDir, "/logo.svg"))
+	http.ServeFile(w, r, path.Join(s.staticDir, "/favicon.svg"))
 }
 
-// serve starts serving the server at the configured address and port.
+// buildHandler builds the http handler.
+//
 // In addition to the pages provided in the pages configuration, a
 // "health" and "favicon" endpoint are provided, the first for
 // deployment purposes.
-//
-// Todo: consider having fewer magic variables; either define them as
-// consts or move the to the configuration file.
-func (s *server) serve() error {
+func (s *server) buildHandler() (http.Handler, error) {
 
 	// Endpoint routing; gorilla mux is used because "/" in http.NewServeMux
 	// is a catch-all pattern.
@@ -123,7 +121,7 @@ func (s *server) serve() error {
 	for _, p := range s.pages {
 		pe, err := p.endpoint(s.htmlTemplate)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		// add route
 		r.HandleFunc(p.URL, pe)
@@ -145,11 +143,19 @@ func (s *server) serve() error {
 	r.Use(logging)
 	r.Use(recovery)
 
-	s.webServer.Handler = r
+	return r, nil
+}
 
-	log.Printf("serving on %s:%s", s.serverAddress, s.serverPort)
+// serve starts serving the server at the configured address and port.
+func (s *server) serve() error {
 
-	err := s.webServer.ListenAndServe()
+	var err error
+	s.webServer.Handler, err = s.buildHandler()
+	if err != nil {
+		return fmt.Errorf("router building error: %w", err)
+	}
+
+	err = s.webServer.ListenAndServe()
 	if err != nil {
 		return fmt.Errorf("fatal server error: %v", err)
 	}

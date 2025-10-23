@@ -1,88 +1,84 @@
 package main
 
 import (
+	"bytes"
 	"io"
-	"log"
 	"net/http"
 	"net/http/httptest"
-	"strings"
+	"net/url"
 	"testing"
 )
 
-func initServer() (*server, error) {
+func initServer(t *testing.T) *server {
 	s, err := newServer(
 		"127.0.0.1",
 		"8001",
 		[]page{
-			page{"/home", "Home", "images/home.jpg", []pageZone{}},
-			page{"/detail", "Detail", "images/detail.jpg", []pageZone{}},
+			page{"/home", "Home", "images/home.jpg", []pageZone{
+				pageZone{367, 44, 539, 263, "/detail"},
+			}},
+			page{"/detail", "Detail", "images/detail.jpg", []pageZone{
+				pageZone{436, 31, 538, 73, "/home"},
+			}},
 		},
 		"templates/page.html",
 	)
-	return s, err
-}
-
-func TestNewServer(t *testing.T) {
-	_, err := initServer()
 	if err != nil {
 		t.Fatal(err)
 	}
+	return s
 }
 
-func TestServerFavicon(t *testing.T) {
-	s, err := initServer()
-	if err != nil {
-		t.Fatal(err)
-	}
+func TestServer(t *testing.T) {
 
-	r := httptest.NewRequest(http.MethodGet, "http://example.com/favicon.ico", nil)
-	w := httptest.NewRecorder()
+	s := initServer(t)
 
-	s.Favicon(w, r)
-
-	res := w.Result()
-	defer res.Body.Close()
-	_, err = io.ReadAll(res.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if want, got := 200, res.StatusCode; want != got {
-		t.Errorf("expected status %d, got %d", want, got)
-	}
-}
-
-func TestServerHealth(t *testing.T) {
-	s, err := initServer()
+	handler, err := s.buildHandler()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	r := httptest.NewRequest(http.MethodGet, "http://example.com/health", nil)
-	w := httptest.NewRecorder()
+	ts := httptest.NewServer(handler)
+	defer ts.Close()
 
-	s.Health(w, r)
-
-	res := w.Result()
-	defer res.Body.Close()
-	data, err := io.ReadAll(res.Body)
-	if err != nil {
-		log.Fatal(err)
+	testCases := []struct {
+		name         string
+		path         string
+		statusCode   int
+		bodyContains string
+	}{
+		{"Health Check", "/health", http.StatusOK, `{"status":"up"}`},
+		{"Home Page", "/home", http.StatusOK, "<title>Home"},
+		{"Detail Page", "/detail", http.StatusOK, "<title>Detail"},
+		{"Favicon", "/favicon", http.StatusOK, "<svg xmlns="},
+		{"Image File", "/images/home.jpg", http.StatusOK, "Photoshop 3.0"},
+		{"Not Found", "/nonexistent", http.StatusNotFound, "404 page not found"},
 	}
 
-	if want, got := 200, res.StatusCode; want != got {
-		t.Errorf("expected status %d, got %d", want, got)
-	}
-	responseBody := string(data)
-	if want, got := strings.TrimSpace(`{"status":"up"}`), strings.TrimSpace(responseBody); want != got {
-		t.Errorf("expected status %s, got %s", want, got)
-	}
-}
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			client := ts.Client()
+			url, err := url.JoinPath(ts.URL, tt.path)
+			if err != nil {
+				t.Fatalf("url joining error: %s, %s : %v", ts.URL, tt.path, err)
+			}
 
-func TestServerServe(t *testing.T) {
-	s, err := initServer()
-	if err != nil {
-		t.Fatal(err)
+			resp, err := client.Get(url)
+			if err != nil {
+				t.Fatalf("get error: %v", err)
+			}
+			defer resp.Body.Close()
+
+			if got, want := resp.StatusCode, tt.statusCode; got != want {
+				t.Fatalf("got %d want %d", got, want)
+			}
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatalf("could not read body: %v", err)
+			}
+			if !bytes.Contains(body, []byte(tt.bodyContains)) {
+				t.Errorf("body does not contain %q", tt.bodyContains)
+			}
+		})
 	}
-	testServer := &httptest.Server{}
 }
