@@ -1,6 +1,6 @@
-module github.com/rorycl/forerunner
+module github.com/rorycl/firstgo
 
-go 1.25.1
+go 1.25
 
 require (
 	github.com/gorilla/handlers v1.5.2
