@@ -7,32 +7,65 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
+	"path/filepath"
 	"time"
 
-	"text/template"
+	"text/template" // not html/template
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
-// server is a basic http server.
+type WebServer interface {
+	ListenAndServe() error
+}
+
+// server sets the configuration for a simple http server.
 type server struct {
-	imageDir      string
+	imageDir      string // "./images"
+	imagePath     string // "/images/"
 	staticDir     string
+	staticPath    string
 	serverAddress string
 	serverPort    string
 	pages         []page
 	htmlTemplate  *template.Template
+	webServer     *http.Server
 }
 
 // newServer makes a newServer
-func newServer(pages []page, htmlTemplatePath string) (*server, error) {
+func newServer(
+	address, port string,
+	pages []page,
+	htmlTemplatePath string,
+) (*server, error) {
+
 	s := server{
-		imageDir:      "./images",
-		staticDir:     "./static",
-		serverAddress: "127.0.0.1",
-		serverPort:    "8000",
+		imageDir:      "images",
+		staticDir:     "static",
+		serverAddress: address,
+		serverPort:    port,
 	}
+
+	// The default server is an http.Server. This can be overridden for
+	// testing.
+	s.webServer = &http.Server{
+		Addr: s.serverAddress + ":" + s.serverPort,
+		// timeouts and limits
+		// MaxHeaderBytes:    s.WebMaxHeaderBytes,
+		ReadTimeout:       1 * time.Second,
+		WriteTimeout:      2 * time.Second,
+		IdleTimeout:       30 * time.Second,
+		ReadHeaderTimeout: 2 * time.Second,
+	}
+
+	pather := func(dir string) string {
+		return "/" + filepath.Base(dir) + "/"
+	}
+	s.imagePath = pather(s.imageDir)
+	s.staticPath = pather(s.staticDir)
+
 	var err error
 	s.htmlTemplate, err = template.ParseFiles(htmlTemplatePath)
 	if err != nil {
@@ -59,27 +92,34 @@ func (s *server) Health(w http.ResponseWriter, r *http.Request) {
 }
 
 // Favicon serves up the favicon
-// func (s *server) Favicon(w http.ResponseWriter, r *http.Request) {
-// 	http.ServeFileFS(w, r, s.DirFS.StaticFS, "/favicon.svg")
-// }
+func (s *server) Favicon(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, path.Join(s.staticDir, "/logo.svg"))
+}
 
+// serve starts serving the server at the configured address and port.
+// In addition to the pages provided in the pages configuration, a
+// "health" and "favicon" endpoint are provided, the first for
+// deployment purposes.
+//
+// Todo: consider having fewer magic variables; either define them as
+// consts or move the to the configuration file.
 func (s *server) serve() error {
+
 	// Endpoint routing; gorilla mux is used because "/" in http.NewServeMux
 	// is a catch-all pattern.
 	r := mux.NewRouter()
 
 	// Atach image and static serving directories.
-	// https://eli.thegreenplace.net/2022/serving-static-files-and-web-apps-in-go/
-	// Note that paths work differently between the standard http handle
-	// and gorilla's mux; PathPrefix is needed in the latter case.
-	imgDir := http.FileServer(http.Dir("images"))
-	r.PathPrefix("/images/").Handler(http.StripPrefix("/images/", imgDir))
-	staticDir := http.FileServer(http.Dir("static"))
-	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", staticDir))
+	imgDir := http.FileServer(http.Dir(s.imageDir))
+	r.PathPrefix(s.imagePath).Handler(http.StripPrefix(s.imagePath, imgDir))
+
+	staticDir := http.FileServer(http.Dir(s.staticDir))
+	r.PathPrefix(s.staticPath).Handler(http.StripPrefix(s.staticPath, staticDir))
 
 	r.HandleFunc("/health", s.Health)
-	// r.HandleFunc("/favicon", s.Favicon())
+	r.HandleFunc("/favicon", s.Favicon)
 
+	// Attach the pages defined in the configuration file.
 	for _, p := range s.pages {
 		pe, err := p.endpoint(s.htmlTemplate)
 		if err != nil {
@@ -105,20 +145,11 @@ func (s *server) serve() error {
 	r.Use(logging)
 	r.Use(recovery)
 
-	// configure server options
-	server := &http.Server{
-		Addr:    s.serverAddress + ":" + s.serverPort,
-		Handler: r,
-		// timeouts and limits
-		// MaxHeaderBytes:    s.WebMaxHeaderBytes,
-		ReadTimeout:       1 * time.Second,
-		WriteTimeout:      2 * time.Second,
-		IdleTimeout:       30 * time.Second,
-		ReadHeaderTimeout: 2 * time.Second,
-	}
+	s.webServer.Handler = r
+
 	log.Printf("serving on %s:%s", s.serverAddress, s.serverPort)
 
-	err := server.ListenAndServe()
+	err := s.webServer.ListenAndServe()
 	if err != nil {
 		return fmt.Errorf("fatal server error: %v", err)
 	}
