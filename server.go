@@ -15,60 +15,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// pageZone sets up a rectangular page zone on a page that, when
-// clicked, redirects to Target.
-type pageZone struct {
-	Left, Top     int
-	Right, Bottom int
-	Target        string
-}
-
-// Width returns the width of the pageZone.
-func (p *pageZone) Width() int {
-	return p.Right - p.Left
-}
-
-// Height returns the height of the pageZone.
-func (p *pageZone) Height() int {
-	return p.Bottom - p.Top
-}
-
-// page is an web page represented by an image located at URL, holding 0
-// or more Zones which, when clicked, redirect to the page in question.
-type page struct {
-	URL       string
-	Title     string
-	ImagePath string // path
-	Zones     []pageZone
-}
-
-// fileExists reports if a file at path exits.
-func fileExists(path string) bool {
-	_, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	return true
-}
-
-// endpoint provides an httphandler for each page
-func (p *page) endpoint(tpl *template.Template) (http.HandlerFunc, error) {
-	if !fileExists(p.ImagePath) {
-		return nil, fmt.Errorf("%s: image %s not found", p.URL, p.ImagePath)
-	}
-	if len(p.Zones) < 1 {
-		return nil, fmt.Errorf("%s: need a least one zone", p.URL)
-	}
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html")
-		err := tpl.Execute(w, p)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	}, nil
-}
-
+// server is a basic http server.
 type server struct {
 	imageDir      string
 	staticDir     string
@@ -78,6 +25,7 @@ type server struct {
 	htmlTemplate  *template.Template
 }
 
+// newServer makes a newServer
 func newServer(pages []page, htmlTemplatePath string) (*server, error) {
 	s := server{
 		imageDir:      "./images",
@@ -153,15 +101,8 @@ func (s *server) serve() error {
 		return handlers.RecoveryHandler()(handler)
 	}
 
-	// compression handler
-	compressor := func(handler http.Handler) http.Handler {
-		return handlers.CompressHandler(handler)
-	}
-
 	// attach middleware
-	// r.Use(bodyLimitMiddleware)
 	r.Use(logging)
-	r.Use(compressor)
 	r.Use(recovery)
 
 	// configure server options
@@ -182,49 +123,4 @@ func (s *server) serve() error {
 		return fmt.Errorf("fatal server error: %v", err)
 	}
 	return nil
-}
-
-func main() {
-
-	pages := []page{
-		page{
-			URL:       "/home",
-			Title:     "Home",
-			ImagePath: "images/home.jpg",
-			Zones: []pageZone{
-				pageZone{
-					Left:   367,
-					Top:    44,
-					Right:  539,
-					Bottom: 263,
-					Target: "/detail",
-				},
-			},
-		},
-		page{
-			URL:       "/detail",
-			Title:     "Detail",
-			ImagePath: "images/detail.jpg",
-			Zones: []pageZone{
-				pageZone{
-					Left:   436,
-					Top:    31,
-					Right:  538,
-					Bottom: 73,
-					Target: "/home",
-				},
-			},
-		},
-	}
-
-	server, err := newServer(pages, "templates/page.html")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	err = server.serve()
-	if err != nil {
-		fmt.Println(err)
-	}
-
 }
