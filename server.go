@@ -2,31 +2,44 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
+	"text/template"
+
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
 // pageZone sets up a rectangular page zone on a page that, when
-// clicked, redirects to target.
+// clicked, redirects to Target.
 type pageZone struct {
-	x1, y1 int
-	x2, y2 int
-	target string
+	Left, Top     int
+	Right, Bottom int
+	Target        string
 }
 
-// page is an web page represented by an image located at url, holding 0
-// or more zones which, when clicked, redirect to the page in question.
+// Width returns the width of the pageZone.
+func (p *pageZone) Width() int {
+	return p.Right - p.Left
+}
+
+// Height returns the height of the pageZone.
+func (p *pageZone) Height() int {
+	return p.Bottom - p.Top
+}
+
+// page is an web page represented by an image located at URL, holding 0
+// or more Zones which, when clicked, redirect to the page in question.
 type page struct {
-	url       string
-	title     string
-	imagePath string // path
-	zones     []pageZone
+	URL       string
+	Title     string
+	ImagePath string // path
+	Zones     []pageZone
 }
 
 // fileExists reports if a file at path exits.
@@ -39,98 +52,52 @@ func fileExists(path string) bool {
 }
 
 // endpoint provides an httphandler for each page
-func (p *page) endpoint() (http.HandlerFunc, error) {
-	if !fileExists(p.imagePath) {
-		return nil, fmt.Errorf("%s: image %s not found", p.url, p.imagePath)
+func (p *page) endpoint(tpl *template.Template) (http.HandlerFunc, error) {
+	if !fileExists(p.ImagePath) {
+		return nil, fmt.Errorf("%s: image %s not found", p.URL, p.ImagePath)
 	}
-	if len(p.zones) < 1 {
-		return nil, fmt.Errorf("%s: need a least one zone", p.url)
-	}
-
-	var zonesHTML string
-	for _, zone := range p.zones {
-		zonesHTML += fmt.Sprintf(
-			`<a class="clickable-zone" href="%s" style="left: %dpx; top: %dpx; width: %dpx; height: %dpx;" title="go to %s"></a>`,
-			zone.target,
-			zone.x1,
-			zone.y1,
-			zone.x2-zone.x1, // width
-			zone.y2-zone.y1, // height
-			zone.target,
-		)
+	if len(p.Zones) < 1 {
+		return nil, fmt.Errorf("%s: need a least one zone", p.URL)
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		html := fmt.Sprintf(`
-			<html>
-			<head>
-				<title>%s</title>
-				<style>
-					body { margin: 0; } /* check */
-					.image-container {
-						position: relative;
-						display: inline-block;
-					}
-					.clickable-zone {
-						position: absolute;
-						display: block;
-					}
-					.clickable-zone:hover {
-						background-color: rgba(0, 0, 255, 0.1); /* blue with opacity */
-						/* box-shadow: inset 2 0 0 1px rgba(0, 0, 255, * 0.9); blue border */ *
-						border: 1px solid rgba(0, 0, 255, 0.7);
-					}
-					/* CSS tooltip */
-					.clickable-zone:hover::after {
-						content: attr(title); /* show title attribute */
-						position: absolute;
-						bottom: -25px;
-						left: 0px;
-						background-color: rgba(0, 0, 255, 0.9);
-						color: white;
-						padding: 2px 8px;
-						border-radius: 2px;
-						font-family: Roboto, sans-serif;
-						font-size: 10px;
-						opacity: 0.8;
-					}
-				</style>
-			</head>
-			<body>
-				<div class="image-container">
-					<img src="%s" />
-					%s
-				</div>
-			</body>
-			</html>`,
-			p.title,
-			p.imagePath,
-			zonesHTML,
-		)
-		w.Write([]byte(html))
+		w.Header().Set("Content-Type", "text/html")
+		err := tpl.Execute(w, p)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	}, nil
 }
 
 type server struct {
 	imageDir      string
+	staticDir     string
 	serverAddress string
 	serverPort    string
 	pages         []page
+	htmlTemplate  *template.Template
 }
 
-func newServer(pages []page) (*server, error) {
+func newServer(pages []page, htmlTemplatePath string) (*server, error) {
 	s := server{
 		imageDir:      "./images",
+		staticDir:     "./static",
 		serverAddress: "127.0.0.1",
 		serverPort:    "8000",
 	}
+	var err error
+	s.htmlTemplate, err = template.ParseFiles(htmlTemplatePath)
+	if err != nil {
+		return nil, fmt.Errorf("template parsing error: %v", err)
+	}
+
 	if len(pages) < 1 {
-		return nil, fmt.Errorf("at least one page must be provided")
+		return nil, errors.New("at least one page must be provided")
 	}
 	for _, p := range pages {
 		s.pages = append(s.pages, p)
 	}
-	return &s, nil
+	return &s, err
 }
 
 // HealthCheck shows if the service is up
@@ -153,23 +120,25 @@ func (s *server) serve() error {
 	// is a catch-all pattern.
 	r := mux.NewRouter()
 
-	// Atach image serving directory.
+	// Atach image and static serving directories.
 	// https://eli.thegreenplace.net/2022/serving-static-files-and-web-apps-in-go/
 	// Note that paths work differently between the standard http handle
 	// and gorilla's mux; PathPrefix is needed in the latter case.
 	imgDir := http.FileServer(http.Dir("images"))
 	r.PathPrefix("/images/").Handler(http.StripPrefix("/images/", imgDir))
+	staticDir := http.FileServer(http.Dir("static"))
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", staticDir))
 
 	r.HandleFunc("/health", s.Health)
 	// r.HandleFunc("/favicon", s.Favicon())
 
 	for _, p := range s.pages {
-		pe, err := p.endpoint()
+		pe, err := p.endpoint(s.htmlTemplate)
 		if err != nil {
 			return err
 		}
 		// add route
-		r.HandleFunc(p.url, pe)
+		r.HandleFunc(p.URL, pe)
 	}
 
 	// logging converts gorilla's handlers.CombinedLoggingHandler to a
@@ -219,36 +188,36 @@ func main() {
 
 	pages := []page{
 		page{
-			url:       "/home",
-			title:     "Home",
-			imagePath: "images/home.jpg",
-			zones: []pageZone{
+			URL:       "/home",
+			Title:     "Home",
+			ImagePath: "images/home.jpg",
+			Zones: []pageZone{
 				pageZone{
-					x1:     367,
-					y1:     44,
-					x2:     539,
-					y2:     263,
-					target: "/detail",
+					Left:   367,
+					Top:    44,
+					Right:  539,
+					Bottom: 263,
+					Target: "/detail",
 				},
 			},
 		},
 		page{
-			url:       "/detail",
-			title:     "Detail",
-			imagePath: "images/detail.jpg",
-			zones: []pageZone{
+			URL:       "/detail",
+			Title:     "Detail",
+			ImagePath: "images/detail.jpg",
+			Zones: []pageZone{
 				pageZone{
-					x1:     436,
-					y1:     31,
-					x2:     538,
-					y2:     73,
-					target: "/home",
+					Left:   436,
+					Top:    31,
+					Right:  538,
+					Bottom: 73,
+					Target: "/home",
 				},
 			},
 		},
 	}
 
-	server, err := newServer(pages)
+	server, err := newServer(pages, "templates/page.html")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
