@@ -1,6 +1,7 @@
 ---
 
 pageTemplate: "templates/page.html"
+indexTemplate: "templates/index.html"
 
 pages:
   -
