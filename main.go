@@ -95,7 +95,7 @@ func main() {
 		return
 	}
 
-	server, err := newServer(address, port, config.Pages, config.PageTemplate)
+	server, err := newServer(address, port, config)
 	if err != nil {
 		fmt.Println(err)
 		Exiter(1)

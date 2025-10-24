@@ -107,7 +107,7 @@ func TestMainMain(t *testing.T) {
 		t.Fatalf("config file error at step %s, %v", "one", err)
 	}
 
-	server, err := newServer(address, port, config.Pages, config.PageTemplate)
+	server, err := newServer(address, port, config)
 	if err != nil {
 		t.Fatalf("new server error at step %s, %v", "one", err)
 	}
