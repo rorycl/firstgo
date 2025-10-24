@@ -2,10 +2,12 @@ package main
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"html/template"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/goccy/go-yaml"
@@ -24,13 +26,13 @@ func (e ErrInvalidConfig) Error() string {
 
 // Embedded file systems and files
 //
-//go:embed all:images
+//go:embed images
 var imageFS embed.FS
 
-//go:embed all:templates
+//go:embed templates
 var templateFS embed.FS
 
-//go:embed all:static
+//go:embed static
 var staticFS embed.FS
 
 //go:embed config.yaml
@@ -62,21 +64,13 @@ type config struct {
 	urlMap       map[string]bool
 }
 
+// validateConfig validates the configuration and also sets fields such
+// as the filesystems (ImageFS, etc).
 func (c *config) validateConfig() error {
 
-	// Check if the path is to a valid directory.
-	dirExists := func(path string) bool {
-		s, err := os.Stat(path)
-		if err != nil {
-			return false
-		}
-		if !s.IsDir() {
-			return false
-		}
-		return true
-	}
-
-	// Attach the filesystems
+	// Attach the filesystems. Beware that embedded filesystems need to
+	// be attached below a named container to match the behaviour of
+	// os.DirFS.
 	if c.embeddedMode {
 		var err error
 		c.ImageFS, err = fs.Sub(imageFS, "images")
@@ -188,6 +182,73 @@ func (c *config) validateConfig() error {
 	return nil
 }
 
+// WriteAssets writes the assets to disk.
+func (c *config) WriteAssets(savePath string) error {
+	if !dirExists(savePath) {
+		return fmt.Errorf("directory %s does not exist", savePath)
+	}
+	if !c.embeddedMode {
+		return errors.New("write assets only permitted for embedded mode")
+	}
+	dirs := map[string]fs.FS{
+		"images":    c.ImageFS,
+		"templates": c.TemplateFS,
+		"static":    c.StaticFS,
+	}
+	config := "config.yaml"
+
+	// check if any of the dirs or config already exist
+	for d := range dirs {
+		fp := filepath.Join(savePath, d)
+		if dirExists(fp) {
+			return fmt.Errorf("filepath %s already exists", fp)
+		}
+	}
+	fp := filepath.Join(savePath, config)
+	var pe *os.PathError
+	if _, err := os.Stat(fp); !errors.As(err, &pe) {
+		return fmt.Errorf("config file %s already exists", fp)
+	}
+
+	// for each dir and config, write to path
+	descentWriter := func(path string, dfs fs.FS) error {
+		err := os.Mkdir(path, 0755)
+		if err != nil {
+			return fmt.Errorf("could not make dir %s: %v", path, err)
+		}
+		// always start at the root of the fs
+		return fs.WalkDir(dfs, ".", func(iPath string, d fs.DirEntry, err error) error {
+			fmt.Printf("%s %v (%T) err %v\n", path, d, d, err)
+			if d.IsDir() {
+				fp := filepath.Join(path, iPath)
+				err := os.Mkdir(fp, 0755)
+				if err != nil {
+					return fmt.Errorf("could not make dir %s: %v", fp, err)
+				}
+				return nil
+			}
+			fp := filepath.Join(path, iPath)
+			b, err := fs.ReadFile(dfs, fp)
+			if err != nil {
+				return fmt.Errorf("could not read file %s: %v", fp, err)
+			}
+			err = os.WriteFile(fp, b, 0644)
+			if err != nil {
+				return fmt.Errorf("could not write file %s: %v", fp, err)
+			}
+			return nil
+		})
+	}
+	for dir, dfs := range dirs {
+		err := descentWriter(filepath.Join(savePath, dir), dfs)
+		if err != nil {
+			fmt.Errorf("writing error: %w", err)
+		}
+	}
+	err := os.WriteFile(config, configYaml, 0644)
+	return err
+}
+
 // hasURL determines if url is in the pages URL field.
 func (c *config) hasURL(s string) bool {
 	_, ok := c.urlMap[s]
@@ -233,4 +294,16 @@ type page struct {
 	Title     string     `yaml:"Title"`
 	ImagePath string     `yaml:"ImagePath"`
 	Zones     []pageZone `yaml:"Zones"`
+}
+
+// dirExists checks if the path is to a valid directory.
+func dirExists(path string) bool {
+	s, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	if !s.IsDir() {
+		return false
+	}
+	return true
 }
