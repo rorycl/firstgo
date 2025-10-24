@@ -2,9 +2,16 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"io/fs"
+	"os"
+	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
+// Test non-embedded, disk based configuration.
 func TestConfigNotEmbedded(t *testing.T) {
 
 	var embeddedMode bool = false
@@ -225,6 +232,7 @@ pages:
 	}
 }
 
+// Test embedded configuration.
 func TestConfigEmbedded(t *testing.T) {
 
 	var embeddedMode bool = true
@@ -257,4 +265,66 @@ func TestConfigEmbedded(t *testing.T) {
 			}
 		})
 	}
+}
+
+func recursiveFSPrinter(t *testing.T, fi fs.FS) string {
+	t.Helper()
+	var s strings.Builder
+	pathStrings := []string{"config.yaml", "images", "static", "templates"}
+	err := fs.WalkDir(fi, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		pathParts := strings.Split(path, "/")
+		for _, pp := range pathParts {
+			for _, p := range pathStrings {
+				if p == pp {
+					if _, err := s.WriteString(fmt.Sprintf("%s\n", path)); err != nil {
+						return fmt.Errorf("could not write %s", path)
+					}
+					return nil
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s.String()
+}
+
+// Test writing embedded files to disk.
+func TestConfigWriteEmbedded(t *testing.T) {
+
+	want := recursiveFSPrinter(t, os.DirFS("."))
+
+	dir, err := os.MkdirTemp("", "firstgo_embed_*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = os.RemoveAll(dir)
+	})
+
+	c, err := newConfig(configYaml, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = c.validateConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = c.WriteAssets(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := recursiveFSPrinter(t, os.DirFS(dir))
+
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("got - want +: %v\n", diff)
+	}
+
 }

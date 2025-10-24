@@ -190,63 +190,36 @@ func (c *config) WriteAssets(savePath string) error {
 	if !c.embeddedMode {
 		return errors.New("write assets only permitted for embedded mode")
 	}
-	dirs := map[string]fs.FS{
-		"images":    c.ImageFS,
-		"templates": c.TemplateFS,
-		"static":    c.StaticFS,
-	}
-	config := "config.yaml"
 
-	// check if any of the dirs or config already exist
+	dirs := map[string]fs.FS{
+		"images":    imageFS,
+		"templates": templateFS,
+		"static":    staticFS,
+	}
+	configFilename := "config.yaml"
+
+	// Check if any of the target directories or config file already exist.
 	for d := range dirs {
 		fp := filepath.Join(savePath, d)
-		if dirExists(fp) {
-			return fmt.Errorf("filepath %s already exists", fp)
+		if _, err := os.Stat(fp); err == nil {
+			return fmt.Errorf("target path %s already exists", fp)
 		}
 	}
-	fp := filepath.Join(savePath, config)
-	var pe *os.PathError
-	if _, err := os.Stat(fp); !errors.As(err, &pe) {
+	fp := filepath.Join(savePath, configFilename)
+	if _, err := os.Stat(fp); err == nil {
 		return fmt.Errorf("config file %s already exists", fp)
 	}
 
-	// for each dir and config, write to path
-	descentWriter := func(path string, dfs fs.FS) error {
-		err := os.Mkdir(path, 0755)
+	// For each embedded FS, write its contents to the corresponding
+	// target directory.
+	for dirName, sourceFS := range dirs {
+		err := writeFSToDisk(savePath, sourceFS)
 		if err != nil {
-			return fmt.Errorf("could not make dir %s: %v", path, err)
-		}
-		// always start at the root of the fs
-		return fs.WalkDir(dfs, ".", func(iPath string, d fs.DirEntry, err error) error {
-			fmt.Printf("%s %v (%T) err %v\n", path, d, d, err)
-			if d.IsDir() {
-				fp := filepath.Join(path, iPath)
-				err := os.Mkdir(fp, 0755)
-				if err != nil {
-					return fmt.Errorf("could not make dir %s: %v", fp, err)
-				}
-				return nil
-			}
-			fp := filepath.Join(path, iPath)
-			b, err := fs.ReadFile(dfs, fp)
-			if err != nil {
-				return fmt.Errorf("could not read file %s: %v", fp, err)
-			}
-			err = os.WriteFile(fp, b, 0644)
-			if err != nil {
-				return fmt.Errorf("could not write file %s: %v", fp, err)
-			}
-			return nil
-		})
-	}
-	for dir, dfs := range dirs {
-		err := descentWriter(filepath.Join(savePath, dir), dfs)
-		if err != nil {
-			fmt.Errorf("writing error: %w", err)
+			return fmt.Errorf("error writing %s: %w", dirName, err)
 		}
 	}
-	err := os.WriteFile(config, configYaml, 0644)
-	return err
+	configDestPath := filepath.Join(savePath, configFilename)
+	return os.WriteFile(configDestPath, configYaml, 0644)
 }
 
 // hasURL determines if url is in the pages URL field.
@@ -306,4 +279,35 @@ func dirExists(path string) bool {
 		return false
 	}
 	return true
+}
+
+// writeFSToDisk walks an embed.FS and writes its contents to a physical
+// directory on disk.
+func writeFSToDisk(destRoot string, sourceFS fs.FS) error {
+	return fs.WalkDir(sourceFS, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err // propogate errors
+		}
+
+		// Destination on disk.
+		destPath := filepath.Join(destRoot, path)
+
+		if d.IsDir() {
+			// os.MkdirAll is idempotent.
+			return os.MkdirAll(destPath, 0755)
+		}
+
+		// For files read the content from the virtual file system.
+		fileBytes, err := fs.ReadFile(sourceFS, path)
+		if err != nil {
+			return fmt.Errorf("could not read embedded file %s: %w", path, err)
+		}
+
+		// Write the file to the physical disk.
+		if err := os.WriteFile(destPath, fileBytes, 0644); err != nil {
+			return fmt.Errorf("could not write file to %s: %w", destPath, err)
+		}
+
+		return nil
+	})
 }
