@@ -1,28 +1,28 @@
-    <style>
-        body { margin: 0; } /* check */
-        .image-container {
-            position: relative;
-            display: inline-block;
-        }
-        .clickable-zone {
-            position: absolute;
-            display: block;
-        }
-        .clickable-zone:hover {
-            background-color: rgba(0, 0, 255, 0.1); /* blue with opacity */
-            border: 1px solid rgba(0, 0, 255, 0.7);
-        }
-        /* CSS tooltip */
-        .clickable-zone:hover::after {
-            content: attr(title); /* show title attribute */
-            position: absolute;
-            bottom: -30px;
-            left: 0px;
-            background-color: rgba(0, 0, 255, 0.9);
-            color: white;
-            padding: 2px 12px 4px 6px;
-            font-family: Roboto, sans-serif;
-            font-size: 11px;
-            opacity: 0.8;
-        }
-    </style>
+<style>
+    body { margin: 0; } /* check */
+    .image-container {
+        position: relative;
+        display: inline-block;
+    }
+    .clickable-zone {
+        position: absolute;
+        display: block;
+    }
+    .clickable-zone:hover {
+        background-color: rgba(0, 0, 255, 0.1); /* blue with opacity */
+        border: 1px solid rgba(0, 0, 255, 0.7);
+    }
+    /* CSS tooltip */
+    .clickable-zone:hover::after {
+        content: attr(title); /* show title attribute */
+        position: absolute;
+        bottom: -24px;
+        left: -2px;
+        background-color: white;
+        color: blue;
+        padding: 2px 12px 4px 6px;
+        font-family: Roboto, sans-serif;
+        font-size: 11px;
+        opacity: 1.0;
+    }
+</style>

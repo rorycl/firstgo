@@ -9,10 +9,28 @@ pages:
     ImagePath: "images/home.jpg"
     Zones:
       -
-        Left:   367
-        Top:    44
-        Right:  539
-        Bottom: 263
+        Left:   606
+        Top:    33
+        Right:  761
+        Bottom: 69
+        Target: "/about"
+      -
+        Left:   61
+        Top:    202
+        Right:  611
+        Bottom: 247
+        Target: "/detail"
+      -
+        Left:   61
+        Top:    293
+        Right:  611
+        Bottom: 337
+        Target: "/detail"
+      -
+        Left:   61
+        Top:    383
+        Right:  611
+        Bottom: 429
         Target: "/detail"
   -
     URL: "/detail"
@@ -20,11 +38,38 @@ pages:
     ImagePath: "images/detail.jpg"
     Zones:
       -
-        Left: 436
-        Top:  31
-        Right: 538
+        Left: 498
+        Top:  14
+        Right: 620
+        Bottom: 56
+        Target: "/home"
+      -
+        Left: 634
+        Top:  14
+        Right: 772
+        Bottom: 56
+        Target: "/about"
+  -
+    URL: "/about"
+    Title: "About"
+    ImagePath: "images/about.jpg"
+    Zones:
+      -
+        Left: 596
+        Top:  26
+        Right: 745
         Bottom: 73
         Target: "/home"
+      -
+        Left: 174
+        Top:  357
+        Right: 272
+        Bottom: 405
+        Target: "/home"
+      -
+        Left: 341
+        Top:  395
+        Right: 432
+        Bottom: 442
+        Target: "/detail"
      
-        
-    
