@@ -3,7 +3,7 @@
 A web server for prototyping web interfaces using sketches and clickable
 zones to move between pages.
 
-![](static/recording.gif)
+![](recording.gif)
 
 ## Why
 
