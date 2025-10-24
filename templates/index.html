@@ -1,0 +1,16 @@
+<html>
+<head>
+    <title>Index</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+<div class="index">
+<h1>Index</h1>
+<ul>
+{{ range . }}
+<li><a href="{{ .URL }}">{{ .Title }}</a></li>
+{{ end }}
+</ul>
+</div>
+</body>
+</html>
