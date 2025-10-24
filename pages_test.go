@@ -129,6 +129,36 @@ pages:
         Bottom: 73
         Target: "/homes"
 `},
+		{
+			name: "duplicate url",
+			err:  ErrInvalidConfig{"duplicate url"},
+			config: `
+---
+pageTemplate: "templates/page.html"
+pages:
+  -
+    URL: "/home"
+    Title: "Home"
+    ImagePath: "images/home.jpg"
+    Zones:
+      -
+        Left:   367
+        Top:    44
+        Right:  539
+        Bottom: 263
+        Target: "/detail"
+  -
+    URL: "/home"
+    Title: "Detail"
+    ImagePath: "images/detail.jpg"
+    Zones:
+      -
+        Left: 436
+        Top:  31
+        Right: 538
+        Bottom: 73
+        Target: "/home"
+`},
 	}
 
 	for _, tt := range tests {

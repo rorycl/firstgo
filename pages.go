@@ -47,6 +47,9 @@ func (c *config) validateConfig() error {
 		if pg.URL == "" {
 			return ErrInvalidConfig{fmt.Sprintf("url empty for page %d (%s)", ii, pg.Title)}
 		}
+		if _, ok := urlMap[pg.URL]; ok {
+			return ErrInvalidConfig{fmt.Sprintf("URL for page %d (%s) already exists", ii, pg.URL)}
+		}
 		urlMap[pg.URL] = true
 		if pg.Title == "" {
 			return ErrInvalidConfig{fmt.Sprintf("title empty for page %d (%s)", ii, pg.URL)}
