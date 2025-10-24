@@ -1,8 +1,18 @@
 ---
 
-pageTemplate: "templates/page.html"
-indexTemplate: "templates/index.html"
+# directories
+imageDir    : "images"
+templateDir : "templates"
+staticDir   : "static"
 
+# templates within templates directory
+pageTemplate: "page.html"
+indexTemplate: "index.html"
+
+# list of pages
+# note that the list of pages will show in the order specified on the
+# index pages ("/index" and "/" pages unless these are explicitly
+# defined).
 pages:
   -
     URL: "/home"

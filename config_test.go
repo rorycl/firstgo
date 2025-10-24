@@ -5,7 +5,9 @@ import (
 	"testing"
 )
 
-func TestConfig(t *testing.T) {
+func TestConfigNotEmbedded(t *testing.T) {
+
+	var embeddedMode bool = false
 
 	tests := []struct {
 		name   string
@@ -17,8 +19,11 @@ func TestConfig(t *testing.T) {
 			err:  nil,
 			config: `
 ---
-pageTemplate: "templates/page.html"
-indexTemplate: "templates/index.html"
+imageDir    : "images"
+templateDir : "templates"
+staticDir   : "static"
+pageTemplate: "page.html"
+indexTemplate: "index.html"
 pages:
   -
     URL: "/home"
@@ -48,8 +53,8 @@ pages:
 			err:  errors.New("yaml parsing error"),
 			config: `
 ---
-pageTemplate: "templates/page.html"
-indexTemplate: "templates/index.html"
+pageTemplate: "page.html"
+indexTemplate: "index.html"
 pages:
     URL: "/home"
     Title: "Home"
@@ -61,7 +66,7 @@ pages:
 			err:  ErrInvalidConfig{"index template not set"},
 			config: `
 ---
-pageTemplate: "templates/page.html"
+pageTemplate: "page.html"
 pages:
   -
     URL: "/home"
@@ -92,8 +97,8 @@ pages:
 			err:  ErrInvalidConfig{"too few pages"},
 			config: `
 ---
-pageTemplate: "templates/page.html"
-indexTemplate: "templates/index.html"
+pageTemplate: "page.html"
+indexTemplate: "index.html"
 pages:
   -
     URL: "/home"
@@ -113,8 +118,8 @@ pages:
 			err:  ErrInvalidConfig{"too few zones"},
 			config: `
 ---
-pageTemplate: "templates/page.html"
-indexTemplate: "templates/index.html"
+pageTemplate: "page.html"
+indexTemplate: "index.html"
 pages:
   -
     URL: "/home"
@@ -138,8 +143,8 @@ pages:
 			err:  ErrInvalidConfig{"invalid zone url"},
 			config: `
 ---
-pageTemplate: "templates/page.html"
-indexTemplate: "templates/index.html"
+pageTemplate: "page.html"
+indexTemplate: "index.html"
 pages:
   -
     URL: "/home"
@@ -169,8 +174,8 @@ pages:
 			err:  ErrInvalidConfig{"duplicate url"},
 			config: `
 ---
-pageTemplate: "templates/page.html"
-indexTemplate: "templates/index.html"
+pageTemplate: "page.html"
+indexTemplate: "index.html"
 pages:
   -
     URL: "/home"
@@ -199,7 +204,41 @@ pages:
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := newConfig([]byte(tt.config))
+			_, err := newConfig([]byte(tt.config), embeddedMode)
+			if tt.err == nil {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatalf("expected an error")
+			}
+			var expectedErr ErrInvalidConfig
+			if errors.As(tt.err, &expectedErr) {
+				var actualErr ErrInvalidConfig
+				if !errors.As(err, &actualErr) {
+					t.Fatalf("expected ErrInvalidConfig, got %T", err)
+				}
+			}
+		})
+	}
+}
+
+func TestConfigEmbedded(t *testing.T) {
+
+	var embeddedMode bool = true
+
+	tests := []struct {
+		name string
+		err  error
+	}{
+		{name: "ok", err: nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := newConfig(configYaml, embeddedMode)
 			if tt.err == nil {
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)

@@ -1,7 +1,10 @@
 package main
 
 import (
+	"embed"
 	"fmt"
+	"html/template"
+	"io/fs"
 	"os"
 	"strings"
 
@@ -19,33 +22,102 @@ func (e ErrInvalidConfig) Error() string {
 	return fmt.Sprintf("invalid yaml configuration: %s", e.info)
 }
 
+// Embedded file systems and files
+//
+//go:embed all:images
+var imageFS embed.FS
+
+//go:embed all:templates
+var templateFS embed.FS
+
+//go:embed all:static
+var staticFS embed.FS
+
+//go:embed config.yaml
+var configYaml []byte
+
 // config describes the config in a yaml configuration file
 type config struct {
 	PageTemplate  string `yaml:"pageTemplate"`
 	IndexTemplate string `yaml:"indexTemplate"`
 	Pages         []page `yaml:"pages"`
-	urlMap        map[string]bool
+
+	// image, template and static directory paths.
+	ImageDir    string `yaml:"imageDir"`
+	TemplateDir string `yaml:"templateDir"`
+	StaticDir   string `yaml:"staticDir"`
+
+	// image, template and static directories filesystems, either from
+	// the embedded assets noted above, or as defined in the config
+	// file.
+	ImageFS    fs.FS
+	TemplateFS fs.FS
+	StaticFS   fs.FS
+
+	// html templates
+	PageTpl  *template.Template
+	IndexTpl *template.Template
+
+	embeddedMode bool
+	urlMap       map[string]bool
 }
 
 func (c *config) validateConfig() error {
-	if c.PageTemplate == "" {
-		return ErrInvalidConfig{"pageTemplate not set"}
+
+	// Check if the path is to a valid directory.
+	dirExists := func(path string) bool {
+		s, err := os.Stat(path)
+		if err != nil {
+			return false
+		}
+		if !s.IsDir() {
+			return false
+		}
+		return true
 	}
-	if _, err := os.Stat(c.PageTemplate); err != nil {
-		return ErrInvalidConfig{fmt.Sprintf(
-			"pageTemplate '%q' could not be found",
-			c.PageTemplate,
-		)}
+
+	// Attach the filesystems
+	if c.embeddedMode {
+		var err error
+		c.ImageFS, err = fs.Sub(imageFS, "images")
+		if err != nil {
+			return ErrInvalidConfig{fmt.Sprintf("directory %q could not be mounted", "images")}
+		}
+		c.TemplateFS, err = fs.Sub(templateFS, "templates")
+		if err != nil {
+			return ErrInvalidConfig{fmt.Sprintf("directory %q could not be mounted", "templates")}
+		}
+		c.StaticFS, err = fs.Sub(staticFS, "static")
+		if err != nil {
+			return ErrInvalidConfig{fmt.Sprintf("directory %q could not be mounted", "static")}
+		}
+	} else {
+		if !dirExists(c.ImageDir) {
+			return ErrInvalidConfig{fmt.Sprintf("directory %q does not exist", c.ImageDir)}
+		}
+		c.ImageFS = os.DirFS(c.ImageDir)
+
+		if !dirExists(c.TemplateDir) {
+			return ErrInvalidConfig{fmt.Sprintf("directory %q does not exist", c.TemplateDir)}
+		}
+		c.TemplateFS = os.DirFS(c.TemplateDir)
+
+		if !dirExists(c.StaticDir) {
+			return ErrInvalidConfig{fmt.Sprintf("directory %q does not exist", c.StaticDir)}
+		}
+		c.StaticFS = os.DirFS(c.StaticDir)
 	}
-	if c.IndexTemplate == "" {
-		return ErrInvalidConfig{"indexTemplate not set"}
+
+	// Check the template files.
+	var err error
+	if c.PageTpl, err = template.ParseFS(c.TemplateFS, c.PageTemplate); err != nil {
+		return ErrInvalidConfig{fmt.Sprintf("pageTemplate parsing error: %v", err)}
 	}
-	if _, err := os.Stat(c.IndexTemplate); err != nil {
-		return ErrInvalidConfig{fmt.Sprintf(
-			"indexTemplate '%q' could not be found",
-			c.IndexTemplate,
-		)}
+	if c.IndexTpl, err = template.ParseFS(c.TemplateFS, c.IndexTemplate); err != nil {
+		return ErrInvalidConfig{fmt.Sprintf("indexTemplate parsing error: %v", err)}
 	}
+
+	// Ensure at least two pages are defined.
 	if len(c.Pages) < 2 {
 		return ErrInvalidConfig{"at least two pages must be defined"}
 	}
@@ -123,12 +195,13 @@ func (c *config) hasURL(s string) bool {
 }
 
 // newConfig creates and validates a new config from reading a yaml
-// file.
-func newConfig(b []byte) (*config, error) {
+// file, initialising in embedded mode or not.
+func newConfig(b []byte, embeddedMode bool) (*config, error) {
 	var c config
 	if err := yaml.Unmarshal(b, &c); err != nil {
 		return nil, fmt.Errorf("unmarshal error: %v", err)
 	}
+	c.embeddedMode = embeddedMode
 	err := c.validateConfig()
 	return &c, err
 }
