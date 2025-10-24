@@ -1,7 +1,7 @@
 # firstgo
 
-A web server for prototyping web interfaces using sketched page images
-and clickable zones to move between pages.
+A web server for prototyping web interfaces using sketches and clickable
+zones to move between pages.
 
 ![](static/recording.gif)
 
