@@ -12,8 +12,11 @@ import (
 func initServer(t *testing.T) *server {
 	t.Helper()
 	cfg := &config{
-		PageTemplate:  "templates/page.html",
-		IndexTemplate: "templates/index.html",
+		PageTemplate:  "page.html",
+		IndexTemplate: "index.html",
+		ImageDir:      "images",
+		TemplateDir:   "templates",
+		StaticDir:     "static",
 		Pages: []page{
 			page{"/home", "Home", "images/home.jpg", []pageZone{
 				pageZone{367, 44, 539, 263, "/detail"},
@@ -22,6 +25,9 @@ func initServer(t *testing.T) *server {
 				pageZone{436, 31, 538, 73, "/home"},
 			}},
 		},
+	}
+	if err := cfg.validateConfig(); err != nil {
+		t.Fatal(err)
 	}
 	s, err := newServer(
 		"127.0.0.1",

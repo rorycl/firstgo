@@ -74,11 +74,9 @@ func newServer(
 	}
 	s.pages = cfg.Pages
 
-	// Parse page template.
-	s.pageTpl, err = template.ParseFiles(cfg.PageTemplate)
-	if err != nil {
-		return nil, fmt.Errorf("pageTemplate parsing error: %v", err)
-	}
+	// Attach template.
+	s.pageTpl = cfg.PageTpl
+	s.indexTpl = cfg.IndexTpl
 
 	// Determine if page indexes are needed.
 	s.indexPages = []string{}
@@ -87,12 +85,6 @@ func newServer(
 			continue
 		}
 		s.indexPages = append(s.indexPages, idx)
-	}
-
-	// Parse index page template.
-	s.indexTpl, err = template.ParseFiles(cfg.IndexTemplate)
-	if err != nil {
-		return nil, fmt.Errorf("indexTemplate parsing error: %v", err)
 	}
 
 	return &s, err
