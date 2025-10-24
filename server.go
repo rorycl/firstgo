@@ -29,16 +29,17 @@ type server struct {
 	staticPath    string
 	serverAddress string
 	serverPort    string
+	pageTpl       *template.Template
+	indexTpl      *template.Template
 	pages         []page
-	htmlTemplate  *template.Template
+	indexPages    []string
 	webServer     *http.Server
 }
 
 // newServer makes a newServer
 func newServer(
 	address, port string,
-	pages []page,
-	htmlTemplatePath string,
+	cfg *config,
 ) (*server, error) {
 
 	s := server{
@@ -67,15 +68,33 @@ func newServer(
 	s.staticPath = pather(s.staticDir)
 
 	var err error
-	s.htmlTemplate, err = template.ParseFiles(htmlTemplatePath)
+
+	if len(cfg.Pages) < 2 {
+		return nil, errors.New("at least two pages must be provided")
+	}
+	s.pages = cfg.Pages
+
+	// Parse page template.
+	s.pageTpl, err = template.ParseFiles(cfg.PageTemplate)
 	if err != nil {
-		return nil, fmt.Errorf("template parsing error: %v", err)
+		return nil, fmt.Errorf("pageTemplate parsing error: %v", err)
 	}
 
-	if len(pages) < 1 {
-		return nil, errors.New("at least one page must be provided")
+	// Determine if page indexes are needed.
+	s.indexPages = []string{}
+	for _, idx := range []string{"/index", "/"} {
+		if cfg.hasURL(idx) {
+			continue
+		}
+		s.indexPages = append(s.indexPages, idx)
 	}
-	s.pages = append(s.pages, pages...)
+
+	// Parse index page template.
+	s.indexTpl, err = template.ParseFiles(cfg.IndexTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("indexTemplate parsing error: %v", err)
+	}
+
 	return &s, err
 }
 
@@ -92,6 +111,35 @@ func (s *server) Health(w http.ResponseWriter, r *http.Request) {
 // Favicon serves up the favicon
 func (s *server) Favicon(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, path.Join(s.staticDir, "/favicon.svg"))
+}
+
+// Page provides an httphandler for each page.
+func (s *server) Page(p *page, tpl *template.Template) (http.HandlerFunc, error) {
+	if _, err := os.Stat(p.ImagePath); err != nil {
+		return nil, fmt.Errorf("%s: image %s not found", p.URL, p.ImagePath)
+	}
+	if len(p.Zones) < 1 {
+		return nil, fmt.Errorf("%s: need a least one zone", p.URL)
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		err := tpl.Execute(w, p)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}, nil
+}
+
+// Index provides an index of all pages.
+func (s *server) Index(pages []page, tpl *template.Template) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		err := tpl.Execute(w, pages)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
 }
 
 // buildHandler builds the http handler.
@@ -117,12 +165,17 @@ func (s *server) buildHandler() (http.Handler, error) {
 
 	// Attach the pages defined in the configuration file.
 	for _, p := range s.pages {
-		pe, err := p.endpoint(s.htmlTemplate)
+		pe, err := s.Page(&p, s.pageTpl)
 		if err != nil {
 			return nil, err
 		}
 		// add route
 		r.HandleFunc(p.URL, pe)
+	}
+
+	// Attach index pages if required.
+	for _, idx := range s.indexPages {
+		r.HandleFunc(idx, s.Index(s.pages, s.indexTpl))
 	}
 
 	// logging converts gorilla's handlers.CombinedLoggingHandler to a

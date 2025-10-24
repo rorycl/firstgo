@@ -11,10 +11,10 @@ import (
 
 func initServer(t *testing.T) *server {
 	t.Helper()
-	s, err := newServer(
-		"127.0.0.1",
-		"8001",
-		[]page{
+	cfg := &config{
+		PageTemplate:  "templates/page.html",
+		IndexTemplate: "templates/index.html",
+		Pages: []page{
 			page{"/home", "Home", "images/home.jpg", []pageZone{
 				pageZone{367, 44, 539, 263, "/detail"},
 			}},
@@ -22,7 +22,11 @@ func initServer(t *testing.T) *server {
 				pageZone{436, 31, 538, 73, "/home"},
 			}},
 		},
-		"templates/page.html",
+	}
+	s, err := newServer(
+		"127.0.0.1",
+		"8001",
+		cfg,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -53,6 +57,8 @@ func TestServer(t *testing.T) {
 		{"Detail Page", "/detail", http.StatusOK, "<title>Detail"},
 		{"Favicon", "/favicon", http.StatusOK, "<svg xmlns="},
 		{"Image File", "/images/home.jpg", http.StatusOK, "Photoshop 3.0"},
+		{"Index", "/index", http.StatusOK, "<h1>Index</h1>"},
+		{"Root", "/", http.StatusOK, "<h1>Index</h1>"},
 		{"Not Found", "/nonexistent", http.StatusNotFound, "404 page not found"},
 	}
 
