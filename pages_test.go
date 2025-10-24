@@ -18,6 +18,50 @@ func TestConfig(t *testing.T) {
 			config: `
 ---
 pageTemplate: "templates/page.html"
+indexTemplate: "templates/index.html"
+pages:
+  -
+    URL: "/home"
+    Title: "Home"
+    ImagePath: "images/home.jpg"
+    Zones:
+      -
+        Left:   367
+        Top:    44
+        Right:  539
+        Bottom: 263
+        Target: "/detail"
+  -
+    URL: "/detail"
+    Title: "Detail"
+    ImagePath: "images/detail.jpg"
+    Zones:
+      -
+        Left: 436
+        Top:  31
+        Right: 538
+        Bottom: 73
+        Target: "/home"
+`},
+		{
+			name: "yaml parsing error",
+			err:  errors.New("yaml parsing error"),
+			config: `
+---
+pageTemplate: "templates/page.html"
+indexTemplate: "templates/index.html"
+pages:
+    URL: "/home"
+    Title: "Home"
+    ImagePath: "images/home.jpg"
+    Zones:
+`},
+		{
+			name: "index template not set",
+			err:  ErrInvalidConfig{"index template not set"},
+			config: `
+---
+pageTemplate: "templates/page.html"
 pages:
   -
     URL: "/home"
@@ -44,23 +88,12 @@ pages:
 `},
 
 		{
-			name: "yaml parsing error",
-			err:  errors.New("yaml parsing error"),
-			config: `
----
-pageTemplate: "templates/page.html"
-pages:
-    URL: "/home"
-    Title: "Home"
-    ImagePath: "images/home.jpg"
-    Zones:
-`},
-
-		{
 			name: "too few pages",
 			err:  ErrInvalidConfig{"too few pages"},
 			config: `
 ---
+pageTemplate: "templates/page.html"
+indexTemplate: "templates/index.html"
 pages:
   -
     URL: "/home"
@@ -81,6 +114,7 @@ pages:
 			config: `
 ---
 pageTemplate: "templates/page.html"
+indexTemplate: "templates/index.html"
 pages:
   -
     URL: "/home"
@@ -105,6 +139,7 @@ pages:
 			config: `
 ---
 pageTemplate: "templates/page.html"
+indexTemplate: "templates/index.html"
 pages:
   -
     URL: "/home"
@@ -135,6 +170,7 @@ pages:
 			config: `
 ---
 pageTemplate: "templates/page.html"
+indexTemplate: "templates/index.html"
 pages:
   -
     URL: "/home"

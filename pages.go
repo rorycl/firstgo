@@ -2,13 +2,10 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 
 	"github.com/goccy/go-yaml"
-
-	"html/template"
 )
 
 // ErrInvalidConfig reports an invalid yaml configuration file, although
@@ -24,13 +21,30 @@ func (e ErrInvalidConfig) Error() string {
 
 // config describes the config in a yaml configuration file
 type config struct {
-	PageTemplate string `yaml:"pageTemplate"`
-	Pages        []page `yaml:"pages"`
+	PageTemplate  string `yaml:"pageTemplate"`
+	IndexTemplate string `yaml:"indexTemplate"`
+	Pages         []page `yaml:"pages"`
+	urlMap        map[string]bool
 }
 
 func (c *config) validateConfig() error {
 	if c.PageTemplate == "" {
 		return ErrInvalidConfig{"pageTemplate not set"}
+	}
+	if _, err := os.Stat(c.PageTemplate); err != nil {
+		return ErrInvalidConfig{fmt.Sprintf(
+			"pageTemplate '%q' could not be found",
+			c.PageTemplate,
+		)}
+	}
+	if c.IndexTemplate == "" {
+		return ErrInvalidConfig{"indexTemplate not set"}
+	}
+	if _, err := os.Stat(c.IndexTemplate); err != nil {
+		return ErrInvalidConfig{fmt.Sprintf(
+			"indexTemplate '%q' could not be found",
+			c.IndexTemplate,
+		)}
 	}
 	if len(c.Pages) < 2 {
 		return ErrInvalidConfig{"at least two pages must be defined"}
@@ -40,17 +54,18 @@ func (c *config) validateConfig() error {
 	// call out valid pages. Note that the context of a page is stored
 	// in the zoneURLMap value and if multiple incorrect Zone Target
 	// values are used with the same URL the last will be reported.
-	urlMap := map[string]bool{}
+	c.urlMap = map[string]bool{}
 	zoneURLMap := map[string]string{}
 
 	for ii, pg := range c.Pages {
 		if pg.URL == "" {
 			return ErrInvalidConfig{fmt.Sprintf("url empty for page %d (%s)", ii, pg.Title)}
 		}
-		if _, ok := urlMap[pg.URL]; ok {
+		if c.hasURL(pg.URL) {
+			fmt.Printf("page %s urls %#v\n", pg.URL, c.urlMap)
 			return ErrInvalidConfig{fmt.Sprintf("URL for page %d (%s) already exists", ii, pg.URL)}
 		}
-		urlMap[pg.URL] = true
+		c.urlMap[pg.URL] = true
 		if pg.Title == "" {
 			return ErrInvalidConfig{fmt.Sprintf("title empty for page %d (%s)", ii, pg.URL)}
 		}
@@ -87,9 +102,9 @@ func (c *config) validateConfig() error {
 
 	// Validate urls.
 	for k, v := range zoneURLMap {
-		if _, ok := urlMap[k]; !ok {
+		if _, ok := c.urlMap[k]; !ok {
 			pageURLS := []string{}
-			for p := range urlMap {
+			for p := range c.urlMap {
 				pageURLS = append(pageURLS, p)
 			}
 			return ErrInvalidConfig{fmt.Sprintf(
@@ -99,6 +114,12 @@ func (c *config) validateConfig() error {
 		}
 	}
 	return nil
+}
+
+// hasURL determines if url is in the pages URL field.
+func (c *config) hasURL(s string) bool {
+	_, ok := c.urlMap[s]
+	return ok
 }
 
 // newConfig creates and validates a new config from reading a yaml
@@ -139,22 +160,4 @@ type page struct {
 	Title     string     `yaml:"Title"`
 	ImagePath string     `yaml:"ImagePath"`
 	Zones     []pageZone `yaml:"Zones"`
-}
-
-// endpoint provides an httphandler for each page.
-func (p *page) endpoint(tpl *template.Template) (http.HandlerFunc, error) {
-	if _, err := os.Stat(p.ImagePath); err != nil {
-		return nil, fmt.Errorf("%s: image %s not found", p.URL, p.ImagePath)
-	}
-	if len(p.Zones) < 1 {
-		return nil, fmt.Errorf("%s: need a least one zone", p.URL)
-	}
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html")
-		err := tpl.Execute(w, p)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	}, nil
 }
