@@ -7,10 +7,12 @@ import (
 
 // App is the main "plug point" for the application, making the two
 // modes of "Serve" (embedded and on disk) and "WriteAssets" injectable
-// into the cli flags package.
+// into the cli flags package. If the interactive flag is set messages
+// are printed to the console.
 type App struct {
-	serveFunc func(*server) error
-	writeFunc func(cfg *config, directory string) error
+	interactive bool
+	serveFunc   func(*server) error
+	writeFunc   func(cfg *config, directory string) error
 }
 
 // NewApp returns a new App.
@@ -19,6 +21,11 @@ func NewApp() *App {
 		serveFunc: Serve,
 		writeFunc: WriteAssets,
 	}
+}
+
+// Interactive toggles the interactive state. By default this is off.
+func (a *App) Interactive() {
+	a.interactive = !a.interactive
 }
 
 // Serve serves the service from disk.
@@ -37,8 +44,10 @@ func (a *App) Serve(address, port, configFile string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("running server on %s:%s\n", address, port)
-	fmt.Printf("the index is at http://%s/index\n", address)
+	if a.interactive {
+		fmt.Printf("Running server on %s:%s\n", address, port)
+		fmt.Printf("(the index is at <http://%s:%s/index>)\n", address, port)
+	}
 	return a.serveFunc(server)
 }
 
@@ -53,8 +62,10 @@ func (a *App) Demo(address, port string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("running demo server on %s:%s\n", address, port)
-	fmt.Printf("the index is at http://%s/index\n", address)
+	if a.interactive {
+		fmt.Printf("Running demo server on %s:%s\n", address, port)
+		fmt.Printf("(the index is at <http://%s:%s/index>)\n", address, port)
+	}
 	return a.serveFunc(server)
 }
 
@@ -64,6 +75,8 @@ func (a *App) Init(dir string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("writing demo files to %q\n", dir)
+	if a.interactive {
+		fmt.Printf("writing demo files to %q\n", dir)
+	}
 	return a.writeFunc(config, dir)
 }

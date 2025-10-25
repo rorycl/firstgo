@@ -7,6 +7,8 @@ import (
 
 func main() {
 	app := NewApp()
+	app.Interactive() // turn on console messages
+
 	msg, err := ParseFlags(app)
 	if err != nil {
 		fmt.Println("error:", err)

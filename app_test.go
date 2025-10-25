@@ -57,4 +57,17 @@ func TestApp(t *testing.T) {
 		t.Fatal("unexpected success for app failure mode")
 	}
 
+	// interactive
+	if got, want := appOK.interactive, false; got != want {
+		t.Errorf("interactive status got %t want %t", got, want)
+	}
+	appOK.Interactive()
+	if got, want := appOK.interactive, true; got != want {
+		t.Errorf("interactive status after switch got %t want %t", got, want)
+	}
+	appOK.Interactive()
+	if got, want := appOK.interactive, false; got != want {
+		t.Errorf("interactive status after second switch got %t want %t", got, want)
+	}
+
 }
