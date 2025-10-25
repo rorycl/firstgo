@@ -37,7 +37,7 @@ type ServeCommand struct {
 	Args    struct {
 		ConfigFile string `description:"configuration yaml file"`
 	} `positional-args:"yes" required:"yes"`
-	// injected main app
+	// injected "Serve" and "Init" capabilities
 	App Applicator `no-flag:"true"`
 }
 
@@ -67,7 +67,7 @@ func (c *ServeCommand) Execute(args []string) error {
 // InitCommand are the flag options for the '<prog> init' command.
 type InitCommand struct {
 	Directory string `short:"d" long:"directory" description:"directory to write files" default:"cwd"`
-	// injected main app
+	// injected "Serve" and "Init" capabilities
 	App Applicator `no-flag:"true"`
 }
 
@@ -100,7 +100,7 @@ func (c *InitCommand) validate() error {
 type DemoCommand struct {
 	Address string `short:"a" long:"address" description:"server address" default:"127.0.0.1"`
 	Port    string `short:"p" long:"port" description:"server port" default:"8000"`
-	// injected main app
+	// injected "Serve" and "Init" capabilities
 	App Applicator `no-flag:"true"`
 }
 
@@ -142,28 +142,37 @@ func ParseFlags(app Applicator) error {
 	parser.Usage = cmdTpl
 
 	// Add the 'serve' command
-	parser.AddCommand(
+	_, err := parser.AddCommand(
 		"serve",
 		"Serve content on disk with the provided config",
 		"The serve command starts the web server with the provided yaml configuration file.",
 		&ServeCommand{App: app},
 	)
+	if err != nil {
+		return fmt.Errorf("serve command err: %w", err)
+	}
 
 	// Add the 'init' command
-	parser.AddCommand(
+	_, err = parser.AddCommand(
 		"init",
 		"Init a project",
 		"Initialise a project by writing the embedded demo project to disk.",
 		&InitCommand{App: app},
 	)
+	if err != nil {
+		return fmt.Errorf("init command err: %w", err)
+	}
 
 	// Add the 'demo' command
-	parser.AddCommand(
+	_, err = parser.AddCommand(
 		"demo",
 		"Run the demo server",
 		"Serve the demo content embedded in the program.",
 		&DemoCommand{App: app},
 	)
+	if err != nil {
+		return fmt.Errorf("demo command err: %w", err)
+	}
 
 	// Catch errors in caller.
 	if _, err := parser.Parse(); err != nil {

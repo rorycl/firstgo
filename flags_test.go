@@ -106,3 +106,14 @@ func TestParseFlags(t *testing.T) {
 		})
 	}
 }
+
+func TestFlagCustomError(t *testing.T) {
+	e := FlagCustomError{"hi"}
+	var fce FlagCustomError
+	if !errors.As(e, &fce) {
+		t.Fatal("expected FlagCustomError")
+	}
+	if got, want := e.Error(), "hi"; got != want {
+		t.Errorf("error got %s want %s", got, want)
+	}
+}
