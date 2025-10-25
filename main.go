@@ -6,12 +6,13 @@ import (
 )
 
 func main() {
-
 	app := NewApp()
-	err := ParseFlags(app)
+	msg, err := ParseFlags(app)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("error:", err)
 		os.Exit(1)
 	}
-
+	if msg != "" {
+		fmt.Println(msg)
+	}
 }
