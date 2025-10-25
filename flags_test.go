@@ -27,10 +27,17 @@ func TestParseFlags(t *testing.T) {
 	testApp := &TestApplication{}
 
 	tests := []struct {
-		name string
-		args []string
-		err  error
+		name   string
+		args   []string
+		hasMsg bool
+		err    error
 	}{
+		{
+			name:   "help",
+			args:   []string{"program", "-h"},
+			hasMsg: true,
+			err:    nil,
+		},
 		{
 			name: "serve all options",
 			args: []string{"program", "serve", "-a", "127.0.0.1", "-p", "8001", "config.yaml"},
@@ -47,6 +54,12 @@ func TestParseFlags(t *testing.T) {
 			err:  &flags.Error{},
 		},
 		{
+			name:   "serve help",
+			args:   []string{"program", "serve", "-h"},
+			hasMsg: true,
+			err:    nil,
+		},
+		{
 			name: "serve invalid address",
 			args: []string{"program", "serve", "-a", "hi", "-p", "8001", "config.yaml"},
 			err:  FlagCustomError{},
@@ -55,6 +68,12 @@ func TestParseFlags(t *testing.T) {
 			name: "serve invalid port",
 			args: []string{"program", "serve", "-a", "127.0.0.3", "-p", "eight", "config.yaml"},
 			err:  FlagCustomError{},
+		},
+		{
+			name:   "init help",
+			args:   []string{"program", "init", "-h"},
+			hasMsg: true,
+			err:    nil,
 		},
 		{
 			name: "init ok default",
@@ -70,6 +89,12 @@ func TestParseFlags(t *testing.T) {
 			name: "init failure",
 			args: []string{"program", "init", "-d", "/_DATA/tmp"},
 			err:  FlagCustomError{},
+		},
+		{
+			name:   "demo help",
+			args:   []string{"program", "demo", "-h"},
+			hasMsg: true,
+			err:    nil,
 		},
 		{
 			name: "demo ok",
@@ -90,7 +115,7 @@ func TestParseFlags(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			os.Args = tt.args
-			err := ParseFlags(testApp)
+			msg, err := ParseFlags(testApp)
 			if tt.err != nil {
 				if err == nil {
 					t.Fatal("expected an error")
@@ -102,6 +127,9 @@ func TestParseFlags(t *testing.T) {
 			}
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
+			}
+			if got, want := len(msg) > 0, tt.hasMsg; got != want {
+				t.Errorf("got msg %t expected %t", got, want)
 			}
 		})
 	}

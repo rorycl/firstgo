@@ -136,7 +136,7 @@ zones to move between pages.
 `
 
 // ParseFlags parses the command line options.
-func ParseFlags(app Applicator) error {
+func ParseFlags(app Applicator) (string, error) {
 	var options Options
 	var parser = flags.NewParser(&options, flags.HelpFlag)
 	parser.Usage = cmdTpl
@@ -149,7 +149,7 @@ func ParseFlags(app Applicator) error {
 		&ServeCommand{App: app},
 	)
 	if err != nil {
-		return fmt.Errorf("serve command err: %w", err)
+		return "", fmt.Errorf("serve command err: %w", err)
 	}
 
 	// Add the 'init' command
@@ -160,7 +160,7 @@ func ParseFlags(app Applicator) error {
 		&InitCommand{App: app},
 	)
 	if err != nil {
-		return fmt.Errorf("init command err: %w", err)
+		return "", fmt.Errorf("init command err: %w", err)
 	}
 
 	// Add the 'demo' command
@@ -171,13 +171,17 @@ func ParseFlags(app Applicator) error {
 		&DemoCommand{App: app},
 	)
 	if err != nil {
-		return fmt.Errorf("demo command err: %w", err)
+		return "", fmt.Errorf("demo command err: %w", err)
 	}
 
-	// Catch errors in caller.
+	// Catch errors in caller. Don't report an error if flags has
+	// already printed Help and raised flags.ErrHelp.
 	if _, err := parser.Parse(); err != nil {
-		return err
+		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+			return err.Error(), nil
+		}
+		return "", err
 	}
 
-	return nil
+	return "", nil
 }
