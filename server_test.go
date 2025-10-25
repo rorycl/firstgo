@@ -16,12 +16,20 @@ func initServer(t *testing.T) *server {
 		PageTemplate:  "templates/page.html",
 		IndexTemplate: "templates/index.html",
 		Pages: []page{
-			page{"/home", "Home", "images/home.jpg", []pageZone{
-				pageZone{367, 44, 539, 263, "/detail"},
-			}},
-			page{"/detail", "Detail", "images/detail.jpg", []pageZone{
-				pageZone{436, 31, 538, 73, "/home"},
-			}},
+			page{
+				URL:       "/home",
+				Title:     "Home",
+				ImagePath: "images/home.jpg",
+				// Note:      "",
+				Zones: []pageZone{pageZone{367, 44, 539, 263, "/detail"}},
+			},
+			page{
+				URL:       "/detail",
+				Title:     "Detail",
+				ImagePath: "images/detail.jpg",
+				Note:      "",
+				Zones:     []pageZone{pageZone{436, 31, 538, 73, "/home"}},
+			},
 		},
 	}
 	if err := cfg.validateConfig(); err != nil {
