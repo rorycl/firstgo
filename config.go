@@ -244,23 +244,22 @@ func WriteAssets(c *config, savePath string) error {
 	}
 
 	// Check if the target directory or config files exists
-	fp := filepath.Join(savePath, AssetDirName)
-	if _, err := os.Stat(fp); err == nil {
-		return fmt.Errorf("target directory %q already exists", fp)
+	assetFP := filepath.Join(savePath, AssetDirName)
+	if _, err := os.Stat(assetFP); err == nil {
+		return fmt.Errorf("target directory %q already exists", assetFP)
 	}
-	fp = filepath.Join(savePath, ConfigFileName)
-	if _, err := os.Stat(fp); err == nil {
-		return fmt.Errorf("config file %q already exists", fp)
+	configFP := filepath.Join(savePath, ConfigFileName)
+	if _, err := os.Stat(configFP); err == nil {
+		return fmt.Errorf("config file %q already exists", configFP)
 	}
 
 	// For each embedded FS, write its contents to the corresponding
 	// target directory.
-	err := writeFSToDisk(savePath, c.AssetsFS)
+	err := writeFSToDisk(assetFP, c.AssetsFS)
 	if err != nil {
 		return fmt.Errorf("error writing %s: %w", AssetDirName, err)
 	}
-	configDestPath := filepath.Join(savePath, ConfigFileName)
-	return os.WriteFile(configDestPath, configYaml, 0644)
+	return os.WriteFile(configFP, configYaml, 0644)
 }
 
 // writeFSToDisk walks an embed.FS and writes its contents to a physical

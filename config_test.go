@@ -306,14 +306,14 @@ func recursiveFSPrinter(t *testing.T, fi fs.FS, addFiles ...string) string {
 // Test writing embedded files to disk.
 func TestConfigWriteEmbedded(t *testing.T) {
 
-	want := recursiveFSPrinter(t, os.DirFS("assets"), []string{"config.yaml"}...)
+	want := recursiveFSPrinter(t, os.DirFS("."))
 
-	dir, err := os.MkdirTemp("", "firstgo_embed_*")
+	testDir, err := os.MkdirTemp("", "firstgo_embed_*")
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		_ = os.RemoveAll(dir)
+		_ = os.RemoveAll(testDir)
 	})
 
 	c, err := newConfig(configYaml, true)
@@ -325,12 +325,12 @@ func TestConfigWriteEmbedded(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = WriteAssets(c, dir)
+	err = WriteAssets(c, testDir)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	got := recursiveFSPrinter(t, os.DirFS(dir))
+	got := recursiveFSPrinter(t, os.DirFS(testDir))
 
 	if diff := cmp.Diff(got, want); diff != "" {
 		t.Errorf("got - want +: %v\n", diff)
