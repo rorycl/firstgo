@@ -129,18 +129,14 @@ func (c *DemoCommand) validate() error {
 }
 
 var cmdTpl string = `
+
 A web server for prototyping web interfaces using sketches and clickable
 zones to move between pages.
 
-Modes:
-
-	demo  : show a demo site with embedded assets
-	init  : materialize the demo site to disk to init a project
-	serve : serve a site from disk
 `
 
 // ParseFlags parses the command line options.
-func ParseFlags(app Applicator) (*Options, error) {
+func ParseFlags(app Applicator) error {
 	var options Options
 	var parser = flags.NewParser(&options, flags.HelpFlag)
 	parser.Usage = cmdTpl
@@ -171,8 +167,8 @@ func ParseFlags(app Applicator) (*Options, error) {
 
 	// Catch errors in caller.
 	if _, err := parser.Parse(); err != nil {
-		return nil, err
+		return err
 	}
 
-	return &options, nil
+	return nil
 }
