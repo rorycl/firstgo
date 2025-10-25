@@ -43,6 +43,11 @@ type ServeCommand struct {
 
 // validate runs additional checks on the ServeCommand.
 func (c *ServeCommand) validate() error {
+	if _, err := os.Stat(c.Args.ConfigFile); err != nil {
+		return FlagCustomError{
+			fmt.Sprintf("file %q not found", c.Args.ConfigFile),
+		}
+	}
 	if a := net.ParseIP(c.Address); a == nil {
 		return FlagCustomError{
 			fmt.Sprintf("address %s is an invalid IP address", c.Address),
@@ -130,8 +135,8 @@ func (c *DemoCommand) validate() error {
 
 var cmdTpl string = `
 
-A web server for prototyping web interfaces using sketches and clickable
-zones to move between pages.
+A web server for prototyping web interfaces using sketches
+and clickable zones to move between pages.
 
 `
 
