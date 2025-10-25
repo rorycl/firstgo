@@ -182,46 +182,6 @@ func (c *config) validateConfig() error {
 	return nil
 }
 
-// WriteAssets writes the assets to disk.
-func (c *config) WriteAssets(savePath string) error {
-	if !dirExists(savePath) {
-		return fmt.Errorf("directory %s does not exist", savePath)
-	}
-	if !c.embeddedMode {
-		return errors.New("write assets only permitted for embedded mode")
-	}
-
-	dirs := map[string]fs.FS{
-		"images":    imageFS,
-		"templates": templateFS,
-		"static":    staticFS,
-	}
-	configFilename := "config.yaml"
-
-	// Check if any of the target directories or config file already exist.
-	for d := range dirs {
-		fp := filepath.Join(savePath, d)
-		if _, err := os.Stat(fp); err == nil {
-			return fmt.Errorf("target path %s already exists", fp)
-		}
-	}
-	fp := filepath.Join(savePath, configFilename)
-	if _, err := os.Stat(fp); err == nil {
-		return fmt.Errorf("config file %s already exists", fp)
-	}
-
-	// For each embedded FS, write its contents to the corresponding
-	// target directory.
-	for dirName, sourceFS := range dirs {
-		err := writeFSToDisk(savePath, sourceFS)
-		if err != nil {
-			return fmt.Errorf("error writing %s: %w", dirName, err)
-		}
-	}
-	configDestPath := filepath.Join(savePath, configFilename)
-	return os.WriteFile(configDestPath, configYaml, 0644)
-}
-
 // hasURL determines if url is in the pages URL field.
 func (c *config) hasURL(s string) bool {
 	_, ok := c.urlMap[s]
@@ -279,6 +239,47 @@ func dirExists(path string) bool {
 		return false
 	}
 	return true
+}
+
+// WriteAssets writes the embedded assets described in the config to
+// disk.
+func WriteAssets(c *config, savePath string) error {
+	if !dirExists(savePath) {
+		return fmt.Errorf("directory %s does not exist", savePath)
+	}
+	if !c.embeddedMode {
+		return errors.New("write assets only permitted for embedded mode")
+	}
+
+	dirs := map[string]fs.FS{
+		"images":    imageFS,
+		"templates": templateFS,
+		"static":    staticFS,
+	}
+	configFilename := "config.yaml"
+
+	// Check if any of the target directories or config file already exist.
+	for d := range dirs {
+		fp := filepath.Join(savePath, d)
+		if _, err := os.Stat(fp); err == nil {
+			return fmt.Errorf("target path %s already exists", fp)
+		}
+	}
+	fp := filepath.Join(savePath, configFilename)
+	if _, err := os.Stat(fp); err == nil {
+		return fmt.Errorf("config file %s already exists", fp)
+	}
+
+	// For each embedded FS, write its contents to the corresponding
+	// target directory.
+	for dirName, sourceFS := range dirs {
+		err := writeFSToDisk(savePath, sourceFS)
+		if err != nil {
+			return fmt.Errorf("error writing %s: %w", dirName, err)
+		}
+	}
+	configDestPath := filepath.Join(savePath, configFilename)
+	return os.WriteFile(configDestPath, configYaml, 0644)
 }
 
 // writeFSToDisk walks an embed.FS and writes its contents to a physical

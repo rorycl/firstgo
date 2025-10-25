@@ -14,7 +14,7 @@ import (
 // Test non-embedded, disk based configuration.
 func TestConfigNotEmbedded(t *testing.T) {
 
-	var embeddedMode bool = false
+	var embeddedMode = false
 
 	tests := []struct {
 		name   string
@@ -235,7 +235,7 @@ pages:
 // Test embedded configuration.
 func TestConfigEmbedded(t *testing.T) {
 
-	var embeddedMode bool = true
+	var embeddedMode = true
 
 	tests := []struct {
 		name string
@@ -316,7 +316,7 @@ func TestConfigWriteEmbedded(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = c.WriteAssets(dir)
+	err = WriteAssets(c, dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -327,4 +327,15 @@ func TestConfigWriteEmbedded(t *testing.T) {
 		t.Errorf("got - want +: %v\n", diff)
 	}
 
+}
+
+func TestErrInvalidConfig(t *testing.T) {
+	e := ErrInvalidConfig{"hi"}
+	var eic ErrInvalidConfig
+	if !errors.As(e, &eic) {
+		t.Fatal("expected ErrInvalidConfig")
+	}
+	if got, want := e.Error(), "invalid yaml configuration: hi"; got != want {
+		t.Errorf("error got %s want %s", got, want)
+	}
 }
