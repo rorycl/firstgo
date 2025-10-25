@@ -161,8 +161,17 @@ func (s *server) buildHandler() (http.Handler, error) {
 	r := mux.NewRouter()
 
 	// Attach the images and static directories.
-	r.PathPrefix(s.imagePath).Handler(http.FileServerFS(s.assetsFS))
-	r.PathPrefix(s.staticPath).Handler(http.FileServerFS(s.assetsFS))
+	imgFS, err := fs.Sub(s.assetsFS, imageDir)
+	if err != nil {
+		return nil, fmt.Errorf("image fs mount failure: %w", err)
+	}
+	r.PathPrefix(s.imagePath).Handler(http.StripPrefix(s.imagePath, http.FileServerFS(imgFS)))
+
+	staticFS, err := fs.Sub(s.assetsFS, staticDir)
+	if err != nil {
+		return nil, fmt.Errorf("static fs mount failure: %w", err)
+	}
+	r.PathPrefix(s.staticPath).Handler(http.StripPrefix(s.staticPath, http.FileServerFS(staticFS)))
 
 	// Don't allow /templates to be read
 	r.HandleFunc(s.templatesPath, s.FourOhFour(
