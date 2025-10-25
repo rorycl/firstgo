@@ -12,7 +12,7 @@ driven design [techniques](https://en.wikipedia.org/wiki/Event_storming),
 starting to put together concept sketches that elucidate the "nouns" and
 the "verbs" of a system can be very useful to validate the design. Using
 sketches also helps separate technical implementation from the
-all-important system concepts.
+all-important domain concepts.
 
 ## Howto
 
@@ -36,9 +36,9 @@ Download the `firstgo` binary for your platform from
   [http://127.0.0.1:8000](http://127.0.0.1:8000)
 
 To deploy your custom content in production, either copy your project
-files with the binary to your production setting, or copy the assets
-over the project yaml and images/, templates/ and static/ directories
-and recompile the binary to embed them.
+files with the binary to your production setting, or copy your project
+yaml and corresponding images, static and templates material to the
+`assets` directory and recompile the binary to embed them.
 
 ## Configuration
 
@@ -52,11 +52,13 @@ The styling and render templates by be altered by simply editing the
 provided files in the `static` and `templates` directories respectively.
 
 If no pages are configured to be served from `/` and `/index` these
-endpoints will be automatically created with a simple index.
+endpoints will be automatically provided showing a simple index.
 
-## Command
+## Run
 
-The `firstgo` command has the following options:
+The `firstgo` command has the options shown below with `./firstgo -h`.
+Invoke a command with `-h` to see its specific help, such as `./firstgo
+serve -h`.
 
 ```
 Usage:
