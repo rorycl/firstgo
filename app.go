@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 )
 
@@ -36,6 +37,8 @@ func (a *App) Serve(address, port, configFile string) error {
 	if err != nil {
 		return err
 	}
+	fmt.Printf("running server on %s:%s\n", address, port)
+	fmt.Printf("the index is at http://%s/index\n", address)
 	return a.serveFunc(server)
 }
 
@@ -50,6 +53,8 @@ func (a *App) Demo(address, port string) error {
 	if err != nil {
 		return err
 	}
+	fmt.Printf("running demo server on %s:%s\n", address, port)
+	fmt.Printf("the index is at http://%s/index\n", address)
 	return a.serveFunc(server)
 }
 
@@ -59,5 +64,6 @@ func (a *App) Init(dir string) error {
 	if err != nil {
 		return err
 	}
+	fmt.Printf("writing demo files to %q\n", dir)
 	return a.writeFunc(config, dir)
 }
