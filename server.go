@@ -189,8 +189,8 @@ func (s *server) buildHandler() (http.Handler, error) {
 	return r, nil
 }
 
-// serve starts serving the server at the configured address and port.
-func (s *server) serve() error {
+// Serve starts serving the server at the configured address and port.
+func Serve(s *server) error {
 
 	var err error
 	s.webServer.Handler, err = s.buildHandler()
