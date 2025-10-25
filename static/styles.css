@@ -16,25 +16,26 @@
     .clickable-zone:hover::after {
         content: attr(title); /* show title attribute */
         position: absolute;
-        bottom: -24px;
+        bottom: -32px;
         left: -2px;
+        min-width: 120px;
         background-color: white;
         color: blue;
-        padding: 2px 12px 4px 6px;
+        padding: 2px 6px 4px 6px;
         font-family: Roboto, sans-serif;
-        font-size: 11px;
+        font-size: 12pt;
         opacity: 1.0;
     }
     .index {
         padding: 20px;
         font-family: Roboto, sans-serif;
-        font-size: 14px;
+        font-size: 13pt;
     }
     li {
         margin-left: -1.6em;
         line-height: 1.4em;
     }
     h1 {
-        font-size: 16px;
+        font-size: 14pt;
     }
 </style>
