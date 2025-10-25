@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"time"
 
@@ -21,14 +21,20 @@ type WebServer interface {
 	ListenAndServe() error
 }
 
+const (
+	imageDir    = "images"
+	staticDir   = "static"
+	templateDir = "templates"
+)
+
 // server sets the configuration for a simple http server.
 type server struct {
-	imageDir      string // "./images"
 	imagePath     string // "/images/"
-	staticDir     string
 	staticPath    string
+	templatesPath string
 	serverAddress string
 	serverPort    string
+	assetsFS      fs.FS
 	pageTpl       *template.Template
 	indexTpl      *template.Template
 	pages         []page
@@ -43,8 +49,6 @@ func newServer(
 ) (*server, error) {
 
 	s := server{
-		imageDir:      "images",
-		staticDir:     "static",
 		serverAddress: address,
 		serverPort:    port,
 	}
@@ -64,8 +68,11 @@ func newServer(
 	pather := func(dir string) string {
 		return "/" + filepath.Base(dir) + "/"
 	}
-	s.imagePath = pather(s.imageDir)
-	s.staticPath = pather(s.staticDir)
+	s.imagePath = pather(imageDir)
+	s.staticPath = pather(staticDir)
+	s.templatesPath = pather(templateDir)
+
+	s.assetsFS = cfg.AssetsFS
 
 	var err error
 
@@ -102,12 +109,12 @@ func (s *server) Health(w http.ResponseWriter, r *http.Request) {
 
 // Favicon serves up the favicon
 func (s *server) Favicon(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, path.Join(s.staticDir, "/favicon.svg"))
+	http.ServeFileFS(w, r, s.assetsFS, "/static/favicon.svg")
 }
 
 // Page provides an httphandler for each page.
 func (s *server) Page(p *page, tpl *template.Template) (http.HandlerFunc, error) {
-	if _, err := os.Stat(p.ImagePath); err != nil {
+	if _, err := fs.Stat(s.assetsFS, p.ImagePath); err != nil {
 		return nil, fmt.Errorf("%s: image %s not found", p.URL, p.ImagePath)
 	}
 	if len(p.Zones) < 1 {
@@ -121,6 +128,14 @@ func (s *server) Page(p *page, tpl *template.Template) (http.HandlerFunc, error)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}, nil
+}
+
+// FourOhFour provides a 404 handler.
+func (s *server) FourOhFour(message string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		http.Error(w, message, http.StatusNotFound)
+	}
 }
 
 // Index provides an index of all pages.
@@ -145,12 +160,14 @@ func (s *server) buildHandler() (http.Handler, error) {
 	// is a catch-all pattern.
 	r := mux.NewRouter()
 
-	// Atach image and static serving directories.
-	imgDir := http.FileServer(http.Dir(s.imageDir))
-	r.PathPrefix(s.imagePath).Handler(http.StripPrefix(s.imagePath, imgDir))
+	// Attach the images and static directories.
+	r.PathPrefix(s.imagePath).Handler(http.FileServerFS(s.assetsFS))
+	r.PathPrefix(s.staticPath).Handler(http.FileServerFS(s.assetsFS))
 
-	staticDir := http.FileServer(http.Dir(s.staticDir))
-	r.PathPrefix(s.staticPath).Handler(http.StripPrefix(s.staticPath, staticDir))
+	// Don't allow /templates to be read
+	r.HandleFunc(s.templatesPath, s.FourOhFour(
+		"The templates directory is purposely not mounted.",
+	))
 
 	r.HandleFunc("/health", s.Health)
 	r.HandleFunc("/favicon", s.Favicon)
@@ -159,7 +176,7 @@ func (s *server) buildHandler() (http.Handler, error) {
 	for _, p := range s.pages {
 		pe, err := s.Page(&p, s.pageTpl)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("page build error: %w", err)
 		}
 		// add route
 		r.HandleFunc(p.URL, pe)

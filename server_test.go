@@ -12,11 +12,9 @@ import (
 func initServer(t *testing.T) *server {
 	t.Helper()
 	cfg := &config{
-		PageTemplate:  "page.html",
-		IndexTemplate: "index.html",
-		ImageDir:      "images",
-		TemplateDir:   "templates",
-		StaticDir:     "static",
+		AssetsDir:     "assets",
+		PageTemplate:  "templates/page.html",
+		IndexTemplate: "templates/index.html",
 		Pages: []page{
 			page{"/home", "Home", "images/home.jpg", []pageZone{
 				pageZone{367, 44, 539, 263, "/detail"},
@@ -46,7 +44,7 @@ func TestServer(t *testing.T) {
 
 	handler, err := s.buildHandler()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("buildHander error:", err)
 	}
 
 	ts := httptest.NewServer(handler)
@@ -66,6 +64,8 @@ func TestServer(t *testing.T) {
 		{"Index", "/index", http.StatusOK, "<h1>Index</h1>"},
 		{"Root", "/", http.StatusOK, "<h1>Index</h1>"},
 		{"Not Found", "/nonexistent", http.StatusNotFound, "404 page not found"},
+		{"Templates file 404", "/templates", http.StatusNotFound, "404 page not found"},
+		{"Templates dir 404", "/templates/", http.StatusNotFound, "The templates directory is purposely not mounted."},
 	}
 
 	for _, tt := range testCases {
