@@ -24,16 +24,21 @@ func (e ErrInvalidConfig) Error() string {
 	return fmt.Sprintf("invalid yaml configuration: %s", e.info)
 }
 
+const (
+	AssetDirName   = "assets"
+	ConfigFileName = "config.yaml"
+)
+
+var RequiredAssetDirs []string = []string{
+	"templates",
+	"static",
+	"images",
+}
+
 // Embedded file systems and files
 //
-//go:embed images
-var imageFS embed.FS
-
-//go:embed templates
-var templateFS embed.FS
-
-//go:embed static
-var staticFS embed.FS
+//go:embed assets
+var assetsFS embed.FS
 
 //go:embed config.yaml
 var configYaml []byte
@@ -44,17 +49,10 @@ type config struct {
 	IndexTemplate string `yaml:"indexTemplate"`
 	Pages         []page `yaml:"pages"`
 
-	// image, template and static directory paths.
-	ImageDir    string `yaml:"imageDir"`
-	TemplateDir string `yaml:"templateDir"`
-	StaticDir   string `yaml:"staticDir"`
-
-	// image, template and static directories filesystems, either from
-	// the embedded assets noted above, or as defined in the config
-	// file.
-	ImageFS    fs.FS
-	TemplateFS fs.FS
-	StaticFS   fs.FS
+	// Assets path (for image, template and static directories) and
+	// associated fs.FS
+	AssetsDir string `yaml:"assetsDir"`
+	AssetsFS  fs.FS
 
 	// html templates
 	PageTpl  *template.Template
@@ -73,41 +71,36 @@ func (c *config) validateConfig() error {
 	// os.DirFS.
 	if c.embeddedMode {
 		var err error
-		c.ImageFS, err = fs.Sub(imageFS, "images")
+		c.AssetsFS, err = fs.Sub(assetsFS, AssetDirName)
 		if err != nil {
-			return ErrInvalidConfig{fmt.Sprintf("directory %q could not be mounted", "images")}
-		}
-		c.TemplateFS, err = fs.Sub(templateFS, "templates")
-		if err != nil {
-			return ErrInvalidConfig{fmt.Sprintf("directory %q could not be mounted", "templates")}
-		}
-		c.StaticFS, err = fs.Sub(staticFS, "static")
-		if err != nil {
-			return ErrInvalidConfig{fmt.Sprintf("directory %q could not be mounted", "static")}
+			return ErrInvalidConfig{fmt.Sprintf("could not mount embedded fs: %v", err)}
 		}
 	} else {
-		if !dirExists(c.ImageDir) {
-			return ErrInvalidConfig{fmt.Sprintf("directory %q does not exist", c.ImageDir)}
+		if !dirExists(c.AssetsDir) {
+			return ErrInvalidConfig{fmt.Sprintf("directory %q does not exist", c.AssetsDir)}
 		}
-		c.ImageFS = os.DirFS(c.ImageDir)
-
-		if !dirExists(c.TemplateDir) {
-			return ErrInvalidConfig{fmt.Sprintf("directory %q does not exist", c.TemplateDir)}
-		}
-		c.TemplateFS = os.DirFS(c.TemplateDir)
-
-		if !dirExists(c.StaticDir) {
-			return ErrInvalidConfig{fmt.Sprintf("directory %q does not exist", c.StaticDir)}
-		}
-		c.StaticFS = os.DirFS(c.StaticDir)
+		c.AssetsFS = os.DirFS(c.AssetsDir)
 	}
 
-	// Check the template files.
-	var err error
-	if c.PageTpl, err = template.ParseFS(c.TemplateFS, c.PageTemplate); err != nil {
+	// Check the required directories in the AssetsFS
+	dir, err := fs.ReadDir(c.AssetsFS, ".")
+	if err != nil {
+		return fmt.Errorf("internal error: could not read filesystem: %v", err)
+	}
+OUTER:
+	for _, req := range RequiredAssetDirs {
+		for _, item := range dir {
+			if req == item.Name() && item.Type().IsDir() {
+				continue OUTER
+			}
+		}
+		return fmt.Errorf("required directory %q not found in filesystem", req)
+	}
+
+	if c.PageTpl, err = template.ParseFS(c.AssetsFS, c.PageTemplate); err != nil {
 		return ErrInvalidConfig{fmt.Sprintf("pageTemplate parsing error: %v", err)}
 	}
-	if c.IndexTpl, err = template.ParseFS(c.TemplateFS, c.IndexTemplate); err != nil {
+	if c.IndexTpl, err = template.ParseFS(c.AssetsFS, c.IndexTemplate); err != nil {
 		return ErrInvalidConfig{fmt.Sprintf("indexTemplate parsing error: %v", err)}
 	}
 
@@ -128,7 +121,6 @@ func (c *config) validateConfig() error {
 			return ErrInvalidConfig{fmt.Sprintf("url empty for page %d (%s)", ii, pg.Title)}
 		}
 		if c.hasURL(pg.URL) {
-			fmt.Printf("page %s urls %#v\n", pg.URL, c.urlMap)
 			return ErrInvalidConfig{fmt.Sprintf("URL for page %d (%s) already exists", ii, pg.URL)}
 		}
 		c.urlMap[pg.URL] = true
@@ -251,34 +243,23 @@ func WriteAssets(c *config, savePath string) error {
 		return errors.New("write assets only permitted for embedded mode")
 	}
 
-	dirs := map[string]fs.FS{
-		"images":    imageFS,
-		"templates": templateFS,
-		"static":    staticFS,
-	}
-	configFilename := "config.yaml"
-
-	// Check if any of the target directories or config file already exist.
-	for d := range dirs {
-		fp := filepath.Join(savePath, d)
-		if _, err := os.Stat(fp); err == nil {
-			return fmt.Errorf("target path %s already exists", fp)
-		}
-	}
-	fp := filepath.Join(savePath, configFilename)
+	// Check if the target directory or config files exists
+	fp := filepath.Join(savePath, AssetDirName)
 	if _, err := os.Stat(fp); err == nil {
-		return fmt.Errorf("config file %s already exists", fp)
+		return fmt.Errorf("target directory %q already exists", fp)
+	}
+	fp = filepath.Join(savePath, ConfigFileName)
+	if _, err := os.Stat(fp); err == nil {
+		return fmt.Errorf("config file %q already exists", fp)
 	}
 
 	// For each embedded FS, write its contents to the corresponding
 	// target directory.
-	for dirName, sourceFS := range dirs {
-		err := writeFSToDisk(savePath, sourceFS)
-		if err != nil {
-			return fmt.Errorf("error writing %s: %w", dirName, err)
-		}
+	err := writeFSToDisk(savePath, c.AssetsFS)
+	if err != nil {
+		return fmt.Errorf("error writing %s: %w", AssetDirName, err)
 	}
-	configDestPath := filepath.Join(savePath, configFilename)
+	configDestPath := filepath.Join(savePath, ConfigFileName)
 	return os.WriteFile(configDestPath, configYaml, 0644)
 }
 

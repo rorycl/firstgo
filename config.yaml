@@ -1,13 +1,11 @@
 ---
 
 # directories
-imageDir    : "images"
-templateDir : "templates"
-staticDir   : "static"
+assetsDir: "assets"
 
-# templates within templates directory
-pageTemplate: "page.html"
-indexTemplate: "index.html"
+# templates within assets/templates directory
+pageTemplate: "templates/page.html"
+indexTemplate: "templates/index.html"
 
 # list of pages
 # note that the list of pages will show in the order specified on the

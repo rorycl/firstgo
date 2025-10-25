@@ -26,11 +26,9 @@ func TestConfigNotEmbedded(t *testing.T) {
 			err:  nil,
 			config: `
 ---
-imageDir    : "images"
-templateDir : "templates"
-staticDir   : "static"
-pageTemplate: "page.html"
-indexTemplate: "index.html"
+assetsDir: "assets"
+pageTemplate: "templates/page.html"
+indexTemplate: "templates/index.html"
 pages:
   -
     URL: "/home"
@@ -60,8 +58,9 @@ pages:
 			err:  errors.New("yaml parsing error"),
 			config: `
 ---
-pageTemplate: "page.html"
-indexTemplate: "index.html"
+assetsDir: "assets"
+pageTemplate: "templates/page.html"
+indexTemplate: "templates/index.html"
 pages:
     URL: "/home"
     Title: "Home"
@@ -73,7 +72,8 @@ pages:
 			err:  ErrInvalidConfig{"index template not set"},
 			config: `
 ---
-pageTemplate: "page.html"
+assetsDir: "assets"
+pageTemplate: "templates/page.html"
 pages:
   -
     URL: "/home"
@@ -104,8 +104,9 @@ pages:
 			err:  ErrInvalidConfig{"too few pages"},
 			config: `
 ---
-pageTemplate: "page.html"
-indexTemplate: "index.html"
+assetsDir: "assets"
+pageTemplate: "templates/page.html"
+indexTemplate: "templates/index.html"
 pages:
   -
     URL: "/home"
@@ -125,8 +126,9 @@ pages:
 			err:  ErrInvalidConfig{"too few zones"},
 			config: `
 ---
-pageTemplate: "page.html"
-indexTemplate: "index.html"
+assetsDir: "assets"
+pageTemplate: "templates/page.html"
+indexTemplate: "templates/index.html"
 pages:
   -
     URL: "/home"
@@ -150,8 +152,9 @@ pages:
 			err:  ErrInvalidConfig{"invalid zone url"},
 			config: `
 ---
-pageTemplate: "page.html"
-indexTemplate: "index.html"
+assetsDir: "assets"
+pageTemplate: "templates/page.html"
+indexTemplate: "templates/index.html"
 pages:
   -
     URL: "/home"
@@ -181,8 +184,9 @@ pages:
 			err:  ErrInvalidConfig{"duplicate url"},
 			config: `
 ---
-pageTemplate: "page.html"
-indexTemplate: "index.html"
+assetsDir: "assets"
+pageTemplate: "templates/page.html"
+indexTemplate: "templates/index.html"
 pages:
   -
     URL: "/home"
@@ -225,7 +229,7 @@ pages:
 			if errors.As(tt.err, &expectedErr) {
 				var actualErr ErrInvalidConfig
 				if !errors.As(err, &actualErr) {
-					t.Fatalf("expected ErrInvalidConfig, got %T", err)
+					t.Fatalf("expected ErrInvalidConfig, got %T (%v)", err, err)
 				}
 			}
 		})
@@ -260,16 +264,21 @@ func TestConfigEmbedded(t *testing.T) {
 			if errors.As(tt.err, &expectedErr) {
 				var actualErr ErrInvalidConfig
 				if !errors.As(err, &actualErr) {
-					t.Fatalf("expected ErrInvalidConfig, got %T", err)
+					t.Fatalf("expected ErrInvalidConfig, got %T (%v)", err, err)
 				}
 			}
 		})
 	}
 }
 
-func recursiveFSPrinter(t *testing.T, fi fs.FS) string {
+// recursiveFSPrinter lists items in a FS. addFiles is a cheeky way of
+// adding files to the listing; these are added first.
+func recursiveFSPrinter(t *testing.T, fi fs.FS, addFiles ...string) string {
 	t.Helper()
 	var s strings.Builder
+	for _, a := range addFiles {
+		fmt.Fprintf(&s, "%s\n", a)
+	}
 	pathStrings := []string{"config.yaml", "images", "static", "templates"}
 	err := fs.WalkDir(fi, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -297,7 +306,7 @@ func recursiveFSPrinter(t *testing.T, fi fs.FS) string {
 // Test writing embedded files to disk.
 func TestConfigWriteEmbedded(t *testing.T) {
 
-	want := recursiveFSPrinter(t, os.DirFS("."))
+	want := recursiveFSPrinter(t, os.DirFS("assets"), []string{"config.yaml"}...)
 
 	dir, err := os.MkdirTemp("", "firstgo_embed_*")
 	if err != nil {
