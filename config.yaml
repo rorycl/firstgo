@@ -16,6 +16,8 @@ pages:
     URL: "/home"
     Title: "Home"
     ImagePath: "images/home.jpg"
+    Note: >
+      Add link to settings.
     Zones:
       -
         Left:   606
@@ -45,6 +47,8 @@ pages:
     URL: "/detail"
     Title: "Detail"
     ImagePath: "images/detail.jpg"
+    Note: >
+      Add details of the location of the sighting.
     Zones:
       -
         Left: 498

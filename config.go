@@ -218,6 +218,7 @@ type page struct {
 	URL       string     `yaml:"URL"`
 	Title     string     `yaml:"Title"`
 	ImagePath string     `yaml:"ImagePath"`
+	Note      string     `yaml:"Note",omitempty"`
 	Zones     []pageZone `yaml:"Zones"`
 }
 
