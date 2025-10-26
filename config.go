@@ -8,7 +8,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/goccy/go-yaml"
 )
@@ -58,8 +57,8 @@ type config struct {
 	PageTpl  *template.Template
 	IndexTpl *template.Template
 
+	pagesByURL   map[string]int
 	embeddedMode bool
-	urlMap       map[string]bool
 }
 
 // validateConfig validates the configuration and also sets fields such
@@ -113,17 +112,12 @@ OUTER:
 	// call out valid pages. Note that the context of a page is stored
 	// in the zoneURLMap value and if multiple incorrect Zone Target
 	// values are used with the same URL the last will be reported.
-	c.urlMap = map[string]bool{}
-	zoneURLMap := map[string]string{}
+	c.pagesByURL = map[string]int{}
 
 	for ii, pg := range c.Pages {
 		if pg.URL == "" {
 			return ErrInvalidConfig{fmt.Sprintf("url empty for page %d (%s)", ii, pg.Title)}
 		}
-		if c.hasURL(pg.URL) {
-			return ErrInvalidConfig{fmt.Sprintf("URL for page %d (%s) already exists", ii, pg.URL)}
-		}
-		c.urlMap[pg.URL] = true
 		if pg.Title == "" {
 			return ErrInvalidConfig{fmt.Sprintf("title empty for page %d (%s)", ii, pg.URL)}
 		}
@@ -133,6 +127,13 @@ OUTER:
 		if len(pg.Zones) < 1 {
 			return ErrInvalidConfig{fmt.Sprintf("no zones defined for page %d (%s)", ii, pg.Title)}
 		}
+		if c.hasURL(pg.URL) {
+			return ErrInvalidConfig{fmt.Sprintf("URL for page %d (%s) already exists", ii, pg.URL)}
+		}
+		c.pagesByURL[pg.URL] = ii
+	}
+
+	for ii, pg := range c.Pages {
 		for zi, zo := range pg.Zones {
 			if zo.Target == "" {
 				return ErrInvalidConfig{fmt.Sprintf(
@@ -140,9 +141,6 @@ OUTER:
 					ii, zi,
 				)}
 			}
-			zoneURLMap[zo.Target] = fmt.Sprintf(
-				"page %d zone %d", ii, zi,
-			)
 			if zo.Right < zo.Left || zo.Right == 0 {
 				return ErrInvalidConfig{fmt.Sprintf(
 					"page %d zone %d invalid 'Right' value of %d",
@@ -155,20 +153,17 @@ OUTER:
 					ii, zi, zo.Bottom,
 				)}
 			}
-		}
-	}
-
-	// Validate urls.
-	for k, v := range zoneURLMap {
-		if _, ok := c.urlMap[k]; !ok {
-			pageURLS := []string{}
-			for p := range c.urlMap {
-				pageURLS = append(pageURLS, p)
+			pgIdx, ok := c.pagesByURL[zo.Target]
+			if !ok {
+				return ErrInvalidConfig{fmt.Sprintf(
+					"invalid Zone Target URL %s for page %s (%d) zone %d",
+					zo.Target,
+					pg.Title,
+					ii,
+					zi,
+				)}
 			}
-			return ErrInvalidConfig{fmt.Sprintf(
-				"invalid Zone Target URL %s doesn't point to a page (%s)\npages: %s",
-				k, v, strings.Join(pageURLS, ", "),
-			)}
+			c.Pages[ii].Zones[zi].TargetTitle = c.Pages[pgIdx].Title
 		}
 	}
 	return nil
@@ -176,7 +171,7 @@ OUTER:
 
 // hasURL determines if url is in the pages URL field.
 func (c *config) hasURL(s string) bool {
-	_, ok := c.urlMap[s]
+	_, ok := c.pagesByURL[s]
 	return ok
 }
 
@@ -200,6 +195,8 @@ type pageZone struct {
 	Right  int    `yaml:"Right"`
 	Bottom int    `yaml:"Bottom"`
 	Target string `yaml:"Target"`
+
+	TargetTitle string // determined in processing
 }
 
 // Width returns the width of the pageZone.

@@ -17,10 +17,10 @@ func initServer(t *testing.T) *server {
 		IndexTemplate: "templates/index.html",
 		Pages: []page{
 			page{"/home", "Home", "images/home.jpg", []pageZone{
-				pageZone{367, 44, 539, 263, "/detail"},
+				pageZone{367, 44, 539, 263, "/detail", ""},
 			}},
 			page{"/detail", "Detail", "images/detail.jpg", []pageZone{
-				pageZone{436, 31, 538, 73, "/home"},
+				pageZone{436, 31, 538, 73, "/home", ""},
 			}},
 		},
 	}
