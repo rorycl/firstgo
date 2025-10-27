@@ -7,7 +7,7 @@
     <div class="image-container">
         <img src="{{ .ImagePath }}" />
         {{ range .Zones }}
-            <a class="clickable-zone" href="{{ .Target }}" style="left: {{ .Left }}px; top: {{ .Top }}px; width: {{ .Width }}px; height: {{ .Height }}px;" title="go to {{ .Target }}"></a>
+            <a class="clickable-zone" href="{{ .Target }}" style="left: {{ .Left }}px; top: {{ .Top }}px; width: {{ .Width }}px; height: {{ .Height }}px;" title="go to {{ .TargetTitle }}"></a>
         {{ end }}
     </div>
 </body>

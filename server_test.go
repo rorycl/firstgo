@@ -21,14 +21,14 @@ func initServer(t *testing.T) *server {
 				Title:     "Home",
 				ImagePath: "images/home.jpg",
 				// Note:      "",
-				Zones: []pageZone{pageZone{367, 44, 539, 263, "/detail"}},
+				Zones: []pageZone{pageZone{367, 44, 539, 263, "/detail", ""}},
 			},
 			page{
 				URL:       "/detail",
 				Title:     "Detail",
 				ImagePath: "images/detail.jpg",
 				Note:      "",
-				Zones:     []pageZone{pageZone{436, 31, 538, 73, "/home"}},
+				Zones:     []pageZone{pageZone{436, 31, 538, 73, "/home", ""}},
 			},
 		},
 	}
