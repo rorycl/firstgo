@@ -10,8 +10,8 @@
             <a class="clickable-zone" href="{{ .Target }}" style="left: {{ .Left }}px; top: {{ .Top }}px; width: {{ .Width }}px; height: {{ .Height }}px;" title="&rarr; {{ .TargetTitle }}"></a>
         {{ end }}
     </div>
-    {{- if .Note }}
-    <p class="note">{{ .Note }}</p>
+    {{- if .NoteHTML }}
+    <div class="note">{{ .NoteHTML }}</div>
     {{- end }}
 </body>
 </html>
