@@ -30,7 +30,7 @@ Download the `firstgo` binary for your platform from
   project   
   just run `./firstgo init` to write the files to the current working
   directory
-* **serve**
+* **serve**:  
   serve project files on disk  
   just run `./firstgo serve config.yaml` to serve on 
   [http://127.0.0.1:8000](http://127.0.0.1:8000)
