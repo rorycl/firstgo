@@ -7,11 +7,12 @@
     <div class="image-container">
         <img src="{{ .ImagePath }}" />
         {{ range .Zones }}
-            <a class="clickable-zone" href="{{ .Target }}" style="left: {{ .Left }}px; top: {{ .Top }}px; width: {{ .Width }}px; height: {{ .Height }}px;" title="&rarr; {{ .TargetTitle }}"></a>
+            <a class="clickable-zone"
+               href="{{ .Target }}"
+               style="left: {{ .Left }}px; top: {{ .Top }}px; width: {{ .Width }}px; height: {{ .Height }}px;"
+               data-tooltip="&raquo; {{ .TargetTitle }}"></a>
         {{ end }}
     </div>
-    {{- if .NoteHTML }}
-    <div class="note">{{ .NoteHTML }}</div>
-    {{- end }}
+    <div class="note"><p>Return to the <a href="/">index</a>. </p>{{ .NoteHTML }}</div>
 </body>
 </html>
