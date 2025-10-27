@@ -1,8 +1,12 @@
 <style>
-    body { margin: 0; } /* check */
+    body {
+        margin: 0;
+        font-family: Roboto, sans-serif;
+    }
     .image-container {
         position: relative;
         display: inline-block;
+        font-family: Roboto, sans-serif;
     }
     .clickable-zone {
         position: absolute;
@@ -22,7 +26,6 @@
         background-color: white;
         color: blue;
         padding: 2px 6px 4px 6px;
-        font-family: Roboto, sans-serif;
         font-size: 12pt;
         opacity: 1.0;
     }
@@ -37,5 +40,12 @@
     }
     h1 {
         font-size: 14pt;
+    }
+    .note {
+        margin: 0 0 0 10px;
+        padding: 5px;
+        font-size: 13pt;
+        font-family: Roboto, sans-serif;
+        color: blue;
     }
 </style>
