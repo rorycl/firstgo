@@ -12,5 +12,6 @@ require (
 require (
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/yuin/goldmark v1.7.13 // indirect
 	golang.org/x/sys v0.21.0 // indirect
 )
