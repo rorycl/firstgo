@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"embed"
 	"errors"
 	"fmt"
@@ -10,6 +11,9 @@ import (
 	"path/filepath"
 
 	"github.com/goccy/go-yaml"
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/renderer/html"
 )
 
 // ErrInvalidConfig reports an invalid yaml configuration file, although
@@ -33,6 +37,15 @@ var RequiredAssetDirs []string = []string{
 	"static",
 	"images",
 }
+
+// md is a markdown goldmark instance using GFM (github markdown) and
+// safety settings (called WithUnsafe).
+var md = goldmark.New(
+	goldmark.WithExtensions(extension.GFM),
+	goldmark.WithRendererOptions(
+		html.WithUnsafe(),
+	),
+)
 
 // Embedded file systems and files
 //
@@ -131,6 +144,16 @@ OUTER:
 			return ErrInvalidConfig{fmt.Sprintf("URL for page %d (%s) already exists", ii, pg.URL)}
 		}
 		c.pagesByURL[pg.URL] = ii
+
+		// Note processing
+		if pg.Note == "" {
+			continue
+		}
+		var buf bytes.Buffer
+		if err := md.Convert([]byte(pg.Note), &buf); err != nil {
+			return fmt.Errorf("error processing markdown for page %q: %w", pg.URL, err)
+		}
+		c.Pages[ii].NoteHTML = template.HTML(buf.String())
 	}
 
 	for ii, pg := range c.Pages {
@@ -215,8 +238,11 @@ type page struct {
 	URL       string     `yaml:"URL"`
 	Title     string     `yaml:"Title"`
 	ImagePath string     `yaml:"ImagePath"`
-	Note      string     `yaml:"Note",omitempty"`
+	Note      string     `yaml:"Note,omitempty"`
 	Zones     []pageZone `yaml:"Zones"`
+
+	// Markdown content from Note.
+	NoteHTML template.HTML
 }
 
 // dirExists checks if the path is to a valid directory.

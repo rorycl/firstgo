@@ -320,6 +320,56 @@ pages:
 	}
 }
 
+func TestConfigHTMLNotes(t *testing.T) {
+
+	var embeddedMode = false
+
+	config := `
+---
+assetsDir: "assets"
+pageTemplate: "templates/page.html"
+indexTemplate: "templates/index.html"
+pages:
+  -
+    URL: "/home"
+    Title: "Home"
+    ImagePath: "images/home.jpg"
+    Note: "**hi** there [old](./man)"
+    Zones:
+      -
+        Left:   367
+        Top:    44
+        Right:  539
+        Bottom: 263
+        Target: "/detail"
+  -
+    URL: "/detail"
+    Title: "Detail"
+    ImagePath: "images/detail.jpg"
+    Zones:
+      -
+        Left: 436
+        Top:  31
+        Right: 538
+        Bottom: 73
+        Target: "/home"
+`
+	cfg, err := newConfig([]byte(config), embeddedMode)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `<p><strong>hi</strong> there <a href="./man">old</a></p>`
+	got := ""
+	for _, p := range cfg.Pages {
+		if p.NoteHTML != "" {
+			got += string(p.NoteHTML)
+		}
+	}
+	if diff := cmp.Diff(strings.TrimSpace(got), want); diff != "" {
+		t.Error(diff)
+	}
+}
+
 // recursiveFSPrinter lists items in a FS. addFiles is a cheeky way of
 // adding files to the listing; these are added first.
 func recursiveFSPrinter(t *testing.T, fi fs.FS, addFiles ...string) string {

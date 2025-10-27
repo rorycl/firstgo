@@ -48,7 +48,7 @@ pages:
     Title: "Detail"
     ImagePath: "images/detail.jpg"
     Note: >
-      Add details of the location of the sighting.
+      Add **details** of the _location_ of the sighting (in markdown format).
     Zones:
       -
         Left: 498
