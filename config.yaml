@@ -17,7 +17,7 @@ pages:
     Title: "Home"
     ImagePath: "images/home.jpg"
     Note: >
-      Add link to settings.
+      A short history of things.
     Zones:
       -
         Left:   606
@@ -48,7 +48,7 @@ pages:
     Title: "Detail"
     ImagePath: "images/detail.jpg"
     Note: >
-      Add **details** of the _location_ of the sighting (in markdown format).
+      Notes can be used to add **details** in _markdown_ format.
     Zones:
       -
         Left: 498
