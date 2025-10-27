@@ -1,34 +1,58 @@
 <style>
     body {
-        margin: 0;
         font-family: Roboto, sans-serif;
     }
+
     .image-container {
+        margin: 5px;
         position: relative;
         display: inline-block;
         font-family: Roboto, sans-serif;
     }
+
+    .image-container img {
+        display: block; /* prevent mystery gap below image */
+    }
+
     .clickable-zone {
         position: absolute;
         display: block;
+        /* make background and border (if used) invisible by default */
+        background-color: transparent;
+        border: 1px solid transparent;
+        /* smooth fade-in effect */
+        transition: background-color 0.2s, border-color 0.2s;
     }
-    .clickable-zone:hover {
-        background-color: rgba(0, 0, 255, 0.1); /* blue with opacity */
-        border: 1px solid rgba(0, 0, 255, 0.7);
+
+    /* show all zones */
+    .image-container:hover .clickable-zone {
+        background-color: rgba(0, 0, 255, 0.05);
     }
-    /* CSS tooltip */
+
+    /* specific clickable zone */
+    .image-container:hover .clickable-zone:hover {
+        background-color: rgba(0, 0, 255, 0.12);
+    }
+
+    /* tooltip */
     .clickable-zone:hover::after {
-        content: attr(title); /* show title attribute */
+        content: attr(data-tooltip);
         position: absolute;
-        bottom: -32px;
-        left: -2px;
-        min-width: 120px;
+        z-index: 10;
+        top: 100%;
+        left: -3px;
+        margin-top: 3px;
+        
+        /* no wrapping */
+        white-space: nowrap;
+
         background-color: white;
         color: blue;
-        padding: 2px 6px 4px 6px;
-        font-size: 12pt;
-        opacity: 1.0;
+        padding: 5px 10px 5px 3px;
+        font-size: 11pt;
     }
+    
+    /* general */
     .index {
         padding: 20px;
         font-family: Roboto, sans-serif;
@@ -42,13 +66,15 @@
         font-size: 14pt;
     }
     .note {
-        margin: 3px 0 3px 10px;
+        margin: 4px 0 3px 10px;
         padding: 0px;
         font-size: 13pt;
         font-family: Roboto, sans-serif;
         color: blue;
+        max-width: 900px;
     }
     .note p {
+        display: inline;
         padding: 0;
         margin: 0;
     }
