@@ -44,7 +44,8 @@ yaml and corresponding images, static and templates material to the
 
 The provided example configuration file sets out the images representing
 "pages" and the clickable area on each. Each "Zone" is the top left and
-bottom right of a rectangle.
+bottom right of a rectangle. Notes can be added at the bottom of each
+image in markdown format.
 
 See the provided [config.yaml](./config.yaml) for an example.
 
@@ -52,7 +53,7 @@ The styling and render templates by be altered by simply editing the
 provided files in the `static` and `templates` directories respectively.
 
 If no pages are configured to be served from `/` and `/index` these
-endpoints will be automatically provided showing a simple index.
+endpoints will be automatically provided with a simple index.
 
 ## Run
 
