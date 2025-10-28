@@ -8,7 +8,7 @@
 
 # -- 0. check input
 
-# Usage: ./firstgo-zoner.sh <output_yaml> <image1> [image2...]
+# Usage: ./zone-recorder.sh <output_yaml> <image1> [image2...]
 if [ "$#" -lt 2 ]; then
     echo "Usage: $0 <output_yaml> <image1> [image2...]"
     echo ""
@@ -33,7 +33,7 @@ done
 if [ ! -f "$YAML_FILE" ]; then
     echo "Creating new config file: $YAML_FILE"
     
-    # write standard firstgo header
+    # write standard firstgo yaml header
     cat > "$YAML_FILE" << EOF
 ---
 
