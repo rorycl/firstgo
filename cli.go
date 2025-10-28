@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	ShortUsage      = "A web server for prototyping web interfaces from sketched images."
+	ShortUsage      = "A web server for prototyping web interfaces from sketches"
 	LongDescription = `The server uses a config.yaml file to describe clickable zones on
    images in assets/images to build an interactive website.
    
