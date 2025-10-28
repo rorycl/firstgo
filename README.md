@@ -21,15 +21,9 @@ Download the `firstgo` binary for your platform from
 
 `firstgo` runs in `demo`, `init` or `serve` modes:
 
-* **demo**:  
-  `./firstgo demo` 
-  run the embedded demo to get a feel for how `firstgo` works
-* **init**:  
-  `./firstgo init` 
-  initialise a new project by writing the demo project to disk
-* **serve**:  
-  `./firstgo serve config.yaml`
-  serve project files on disk
+* **demo**: `./firstgo demo` runs the embedded demo to get a feel for how `firstgo` works
+* **init**: `./firstgo init` initialises a new project by writing the demo project to disk
+* **serve**: `./firstgo serve config.yaml` serves project files from disk
 
 To deploy your custom content in production, either copy your project
 files with the binary to your production setting, or copy your project
@@ -38,13 +32,12 @@ yaml and corresponding images, static and templates material to the
 
 ### Configuration & Customisation
 
-The provided example configuration file sets out the images representing
-"pages" and the clickable area on each. Each "Zone" is the top left and
-bottom right of a rectangle. Notes, in markdown format, can also be added.
+The configuration file sets out the images representing "pages" and the
+clickable area on each. Each "Zone" is the top left and bottom right of
+a rectangle. Notes can also be added in markdown format. See the
+provided [config.yaml](./config.yaml) for an example.
 
-See the provided [config.yaml](./config.yaml) for an example.
-
-The styling and render templates may be easily customised by editing the
+The styling and render templates can be easily customised by editing the
 the css file in `static` and the two [golang
 templates](https://www.digitalocean.com/community/tutorials/how-to-use-templates-in-go).
 templates in `templates`.
@@ -57,8 +50,8 @@ endpoints will be automatically provided with a simple index.
 For recording clickable zones on images, consider using a tool like
 [LabelImg](https://github.com/HumanSignal/labelImg). Alternatively a
 simple bash script using `qiv` and `slop` is provided at
-[utils/zone-recorder.sh](utils/zone-recorder.sh). A cross-platform
-builder script is also provided.
+[utils/zone-recorder.sh](utils/zone-recorder.sh). A script for building
+cross-platform binaries is also provided.
 
 ### Run
 
