@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"io"
 	"strings"
 	"testing"
 )
@@ -97,6 +98,8 @@ func TestParseCLI(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := BuildCLI(testApp)
+			cmd.Writer = io.Discard
+			cmd.ErrWriter = io.Discard
 			err := cmd.Run(context.Background(), tt.args)
 			if tt.wantErrContains != "" {
 				if err == nil {
