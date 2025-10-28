@@ -16,11 +16,13 @@ fi
 
 OUTDIR=$1
 BINBASENAME=$2
-THISDIR=$(dirname "$0")
+# THISDIR=$(dirname "$0")
+THISDIR=$(pwd)
+FULLDIRPATH=${THISDIR}/${OUTDIR}
 
 # clean bin
-if [ ! -d "$OUTDIR" ]; then
-    echo "output directory $OUTDIR not found"
+if [ ! -d "${FULLDIRPATH}" ]; then
+    echo "output directory ${FULLDIRPATH} not found"
     exit 1
 fi
 rm -f $OUTDIR/$BINBASENAME*
@@ -39,8 +41,8 @@ for II in $LINUX $WIN $MACAMD $MACARM; do
 	arch=$(echo $II | cut -d":" -f3)
 	suffix=$(echo $II | cut -d":" -f4)
 	# echo $os $arch $suffix;
-	echo GOOS=${os} GOARCH=${arch} CGO_ENABLED=${cgo} go build -o ${THISDIR}/${OUTDIR}/${BINBASENAME}-${suffix} .
-	GOOS=${os} GOARCH=${arch} CGO_ENABLED=${cgo} go build -o ${THISDIR}/${OUTDIR}/${BINBASENAME}-${suffix} .
+	echo GOOS=${os} GOARCH=${arch} CGO_ENABLED=${cgo} go build -o ${FULLDIRPATH}/${BINBASENAME}-${suffix} .
+	GOOS=${os} GOARCH=${arch} CGO_ENABLED=${cgo} go build -o ${FULLDIRPATH}/${BINBASENAME}-${suffix} .
 done
 
 echo ""
@@ -52,7 +54,7 @@ echo "gh release --help"
 echo "gh release list"
 echo "gh release view v0.0.5"
 echo "gh release delete v0.0.5"
-echo "gh release create v0.0.5 --generate-notes ${BINBASENAME}-*"
+echo "gh release create v0.0.5 --generate-notes ${OUTDIR}/${BINBASENAME}-*"
 echo "gh release view v0.0.5"
 echo "------------------------------------"
 
