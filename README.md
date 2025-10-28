@@ -22,14 +22,14 @@ Download the `firstgo` binary for your platform from
 `firstgo` runs in `demo`, `init` or `serve` modes:
 
 * **demo**:  
-  run the embedded demo to get a feel for how `firstgo` works  
-  run `./firstgo demo` 
+  `./firstgo demo` 
+  run the embedded demo to get a feel for how `firstgo` works
 * **init**:  
-  initialise a new project
-  run `./firstgo init` to write scaffolding files from the demo project 
+  `./firstgo init` 
+  initialise a new project by writing the demo project to disk
 * **serve**:  
-  serve project files on disk  
-  run `./firstgo serve config.yaml`
+  `./firstgo serve config.yaml`
+  serve project files on disk
 
 To deploy your custom content in production, either copy your project
 files with the binary to your production setting, or copy your project
@@ -62,27 +62,30 @@ builder script is also provided.
 
 ### Run
 
-The `firstgo` command has the options shown below with `./firstgo -h`.
-Invoke a command with `-h` to see its specific help, such as `./firstgo
-serve -h`.
-
 ```
-Usage:
-  firstgo 
+./firstgo -h
 
-A web server for prototyping web interfaces using sketches and clickable
-zones to move between pages.
+NAME:
+   firstgo - A web server for prototyping web interfaces from sketched images.
 
- <demo | init | serve>
+USAGE:
+   firstgo [global options] [command]
 
-Help Options:
-  -h, --help  Show this help message
+DESCRIPTION:
+   The server uses a config.yaml file to describe clickable zones on
+   images in assets/images to build an interactive website.
+   
+   For a demo with embedded assets and config file, use 'demo'.
+   To start a new project, use 'init' to write the demo files to disk.
+   To serve files on disk use 'serve'.
 
-Available commands:
-  demo   Run the demo server
-  init   Init a project
-  serve  Serve content on disk with the provided config
+COMMANDS:
+   serve  Serve content on disk with the provided config
+   init   Initialize a new project in a directory
+   demo   Run the embedded demo server
+   help   Shows a list of commands or help for one command
 
+Run 'firstgo [command] --help' for more information on a command.
 ```
 
 ### Licence
