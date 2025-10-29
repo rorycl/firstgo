@@ -63,6 +63,7 @@ for IMAGE_FILE in "${IMAGE_FILES[@]}"; do
     # -- 3a. generate page stubs
     FILENAME=$(basename -- "$IMAGE_FILE")
     BASENAME="${FILENAME%.*}" # Removes the extension
+    IMAGE_FILE_CLEANED=${IMAGE_FILE/assets\//} # remove 'assets' dir
     URL="/$BASENAME"
     # titlecase title
     TITLE="$(tr '[:lower:]' '[:upper:]' <<< ${BASENAME:0:1})${BASENAME:1}"
@@ -70,7 +71,7 @@ for IMAGE_FILE in "${IMAGE_FILES[@]}"; do
         echo "  -"
         echo "    URL: \"$URL\""
         echo "    Title: \"$TITLE\""
-        echo "    ImagePath: \"$IMAGE_FILE\""
+        echo "    ImagePath: \"$IMAGE_FILE_CLEANED\""
         echo "    Note: \"\""
         echo "    Zones:"
     } >> "$YAML_FILE"
