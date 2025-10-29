@@ -98,7 +98,11 @@ for IMAGE_FILE in "${IMAGE_FILES[@]}"; do
         
         # use slop (not AI slop) a program to "query for a [mouse]
         # selection from the user and prints the region to stdout."
-        SELECTION=$(slop -f "%x %y %w %h")
+        # -o : no hardware acceleration
+        # -b : selection border width
+        # -c : color of selection
+        # -f : format
+        SELECTION=$(slop -o -b 2 -c 6.2,4.3,24.8,0.2 -f "%x %y %w %h")
         if [ -z "$SELECTION" ]; then
             echo "Selection cancelled."
             continue # go back to prompt
