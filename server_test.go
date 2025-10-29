@@ -2,11 +2,14 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 )
 
 // initServer inits a server with default content in the repo, such as
@@ -110,5 +113,21 @@ func TestServer(t *testing.T) {
 				t.Errorf("body does not contain %q", tt.bodyContains)
 			}
 		})
+	}
+}
+
+func TestServerServe(t *testing.T) {
+	s := initServer(t)
+
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Millisecond*50)
+	defer cancel()
+
+	err := s.webServer.Shutdown(ctx)
+	if err != nil {
+		t.Fatal("cannot register shutdown:", err)
+	}
+	err = Serve(s)
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		t.Fatalf("unexpected error %T %v", err, err)
 	}
 }

@@ -236,7 +236,7 @@ func Serve(s *server) error {
 
 	err = s.webServer.ListenAndServe()
 	if err != nil {
-		return fmt.Errorf("fatal server error: %v", err)
+		return fmt.Errorf("fatal server error: %w", err)
 	}
 	return nil
 }
