@@ -68,6 +68,7 @@ func TestServer(t *testing.T) {
 		{"Home Page", "/home", http.StatusOK, "<title>Home"},
 		{"Detail Page", "/detail", http.StatusOK, "<title>Detail"},
 		{"Favicon", "/favicon", http.StatusOK, "<svg xmlns="},
+		{"Favicon ico", "/favicon.ico", http.StatusOK, "<svg xmlns="},
 		{"Image File", "/images/home.jpg", http.StatusOK, "Photoshop 3.0"},
 		{"Index", "/index", http.StatusOK, "<h1>Index</h1>"},
 		{"Root", "/", http.StatusOK, "<h1>Index</h1>"},

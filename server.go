@@ -180,6 +180,7 @@ func (s *server) buildHandler() (http.Handler, error) {
 
 	r.HandleFunc("/health", s.Health)
 	r.HandleFunc("/favicon", s.Favicon)
+	r.HandleFunc("/favicon.ico", s.Favicon)
 
 	// Attach the pages defined in the configuration file.
 	for _, p := range s.pages {
