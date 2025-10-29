@@ -21,7 +21,7 @@ Download the `firstgo` binary for your platform from
 
 `firstgo` runs in `demo`, `init` or `serve` modes:
 
-* **demo**: `./firstgo demo` runs the embedded demo to get a feel for how `firstgo` works
+* **demo**: `./firstgo demo` runs the embedded demo to show how `firstgo` works
 * **init**: `./firstgo init` initialises a new project by writing the demo project to disk
 * **serve**: `./firstgo serve config.yaml` serves project files from disk
 
