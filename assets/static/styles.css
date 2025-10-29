@@ -22,6 +22,8 @@
         border: 1px solid transparent;
         /* smooth fade-in effect */
         transition: background-color 0.2s, border-color 0.2s;
+        /* soften borders */
+        border-radius: 5px;
     }
 
     /* show all zones */
@@ -31,7 +33,7 @@
 
     /* specific clickable zone */
     .image-container:hover .clickable-zone:hover {
-        background-color: rgba(0, 0, 255, 0.12);
+        background-color: rgba(0, 0, 255, 0.13);
     }
 
     /* tooltip */
@@ -48,7 +50,7 @@
 
         background-color: white;
         color: blue;
-        padding: 5px 10px 5px 3px;
+        padding: 5px 10px 8px 3px;
         font-size: 11pt;
     }
     
