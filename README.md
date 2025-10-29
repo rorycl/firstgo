@@ -45,13 +45,10 @@ templates in `templates`.
 If no pages are configured to be served from `/` and `/index` these
 endpoints will be automatically provided with a simple index.
 
-## Utilities
+## Record clickable zones
 
-For recording clickable zones on images, consider using a tool like
-[LabelImg](https://github.com/HumanSignal/labelImg). Alternatively a
-simple bash script using `qiv` and `slop` is provided at
-[utils/zone-recorder.sh](utils/zone-recorder.sh). A script for building
-cross-platform binaries is also provided.
+Information on recording clickable zones, including a handy script, is
+set out in [utils](./utils/).
 
 ## Run
 
