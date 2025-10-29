@@ -11,4 +11,4 @@ require (
 	github.com/yuin/goldmark v1.7.13
 )
 
-require github.com/felixge/httpsnoop v1.0.3 // indirect
+require github.com/felixge/httpsnoop v1.0.4 // indirect

@@ -5,7 +5,7 @@ zones to move between pages.
 
 ![](recording.gif)
 
-### Why
+## Why
 
 If you are developing a web site or service, perhaps through domain
 driven design [techniques](https://en.wikipedia.org/wiki/Event_storming),
@@ -14,7 +14,7 @@ the "verbs" of a system can be very useful to validate the design. Using
 sketches also helps separate technical implementation from the
 all-important domain concepts.
 
-### Howto
+## Howto
 
 Download the `firstgo` binary for your platform from
 [releases](https://github.com/rorycl/firstgo/releases).
@@ -30,7 +30,7 @@ files with the binary to your production setting, or copy your project
 yaml and corresponding images, static and templates material to the
 `assets` directory and recompile the binary to embed them.
 
-### Configuration & Customisation
+## Configuration & Customisation
 
 The configuration file sets out the images representing "pages" and the
 clickable area on each. Each "Zone" is the top left and bottom right of
@@ -45,7 +45,7 @@ templates in `templates`.
 If no pages are configured to be served from `/` and `/index` these
 endpoints will be automatically provided with a simple index.
 
-### Utilities
+## Utilities
 
 For recording clickable zones on images, consider using a tool like
 [LabelImg](https://github.com/HumanSignal/labelImg). Alternatively a
@@ -53,7 +53,7 @@ simple bash script using `qiv` and `slop` is provided at
 [utils/zone-recorder.sh](utils/zone-recorder.sh). A script for building
 cross-platform binaries is also provided.
 
-### Run
+## Run
 
 ```
 ./firstgo -h
@@ -81,6 +81,6 @@ COMMANDS:
 Run 'firstgo [command] --help' for more information on a command.
 ```
 
-### Licence
+## Licence
 
 This project is licensed under the [MIT Licence](LICENCE).
