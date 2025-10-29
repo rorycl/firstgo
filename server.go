@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"html/template"
@@ -47,6 +49,13 @@ func newServer(
 	address, port string,
 	cfg *config,
 ) (*server, error) {
+
+	if a := net.ParseIP(address); a == nil {
+		return nil, fmt.Errorf("invalid IP address: %s", address)
+	}
+	if _, err := strconv.Atoi(port); err != nil {
+		return nil, fmt.Errorf("invalid port: %s", port)
+	}
 
 	s := server{
 		serverAddress: address,

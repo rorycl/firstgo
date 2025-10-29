@@ -9,6 +9,9 @@ import (
 	"testing"
 )
 
+// initServer inits a server with default content in the repo, such as
+// the material at assets/static (including styles) and pages (including
+// images from assets/images and templates from assets/templates).
 func initServer(t *testing.T) *server {
 	t.Helper()
 	cfg := &config{
@@ -46,6 +49,9 @@ func initServer(t *testing.T) *server {
 	return s
 }
 
+// TestServer tests a running server instance of the site using the
+// configuration loaded from initServer. The configuration depends on
+// the on-disk default content in the repo.
 func TestServer(t *testing.T) {
 
 	s := initServer(t)
