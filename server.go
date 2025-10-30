@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
+	"iter"
 	"log"
 	"net"
 	"net/http"
@@ -237,6 +239,42 @@ func Serve(s *server) error {
 	err = s.webServer.ListenAndServe()
 	if err != nil {
 		return fmt.Errorf("fatal server error: %w", err)
+	}
+	return nil
+}
+
+// watchFunc is the signature of a file watcher used for refreshing the
+// server when watched files are changed.
+type watchFunc func() iter.Seq2[bool, error]
+
+// ServeInDevelopment runs in a loop to restart the server if watchFunc
+// reports a file change or error.
+func ServeInDevelopment(s *server, watcher watchFunc) error {
+	var Err error
+	serve := func() {
+		go func() {
+			Err = Serve(s)
+		}()
+	}
+
+	// start the server
+	serve()
+	if Err != nil {
+		return fmt.Errorf("in development serve error: %w", Err)
+	}
+
+	for _, err := range watcher() {
+		if err != nil {
+			return fmt.Errorf("file changer error: %w", err)
+		}
+		err = s.webServer.Shutdown(context.TODO())
+		if err != nil {
+			return fmt.Errorf("shutdown error: %w", err)
+		}
+		serve()
+		if Err != nil {
+			return fmt.Errorf("in development serve error: %w", Err)
+		}
 	}
 	return nil
 }
