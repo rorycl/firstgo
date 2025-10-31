@@ -7,8 +7,7 @@ import (
 	"iter"
 	"os"
 	"path/filepath"
-	"regexp"
-	"sync"
+	"strings"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -18,29 +17,32 @@ import (
 // flushDuration sets the time given to wait for multiple editor writes
 const flushDuration time.Duration = 50 * time.Millisecond
 
-// FileChangeDescriptor is a combination of a directory and file names
-// to watch under it.
+// DirFilesDescriptor is a combination of a directory and files with the
+// specified suffixes to watch under it.
 type DirFilesDescriptor struct {
-	Dir         string
-	FileMatcher *regexp.Regexp
+	Dir          string
+	FileSuffixes []string
 }
 
 // FileChangeNotifier is a type holding one or more FileChangeDescriptor
 // watchers.
 type FileChangeNotifier struct {
 	dirFiles         []DirFilesDescriptor
-	dirDescriptorMap map[string]*regexp.Regexp
+	dirDescriptorMap map[string][]string
 	watcher          *fsnotify.Watcher
 	refresh          chan bool
-	Err              error
-	sync.Mutex
+	err              error
 }
 
-// Refresh reports need for a refresh, enclosing a bool channel.
-func (fcn *FileChangeNotifier) Refresh() iter.Seq[bool] {
-	return func(yield func(bool) bool) {
+// Refresh reports need for a refresh providing an iterator of bool,
+// error to catch both file change events and possible errors that may
+// occur during the file watching process. No error is deemed fatal and
+// it is up to the the consumer to catch errors and exit the loop
+// appropriately.
+func (fcn *FileChangeNotifier) Refresh() iter.Seq2[bool, error] {
+	return func(yield func(bool, error) bool) {
 		for r := range fcn.refresh {
-			if !yield(r) {
+			if !yield(r, fcn.err) {
 				return
 			}
 		}
@@ -48,9 +50,34 @@ func (fcn *FileChangeNotifier) Refresh() iter.Seq[bool] {
 }
 
 // NewFileChangeNotifier registers and starts a FileChangeNotifier,
-// watching the specified directories for events. This code refers
-// closely to
+// watching the specified directories for write events for files with
+// the specified suffixes. Consumers should iterate over [Refresh] to
+// receive events or errors.
+//
+// Note that suffixes provided without the leading "dot" ('.') have this
+// prepended to the provided suffix.
+//
+// Refer to
 // https://github.com/fsnotify/fsnotify/blob/v1.8.0/cmd/fsnotify/file.go
+//
+// An example:
+//
+//	func main() {
+//		watcher, err := NewFileChangeNotifier(
+//			context.TODO(),
+//			[]DirFilesDescriptor{
+//				DirFilesDescriptor{"/tmp/a", []string{".html", "css"}},
+//				DirFilesDescriptor{"/tmp/b", []string{"txt"}},
+//			},
+//		)
+//		if err != nil {
+//			fmt.Println("error at base:", err)
+//			os.Exit(1)
+//		}
+//		for _, err = range watcher.Refresh() {
+//			fmt.Println(err, "got!")
+//		}
+//	}
 func NewFileChangeNotifier(ctx context.Context, descriptors []DirFilesDescriptor) (*FileChangeNotifier, error) {
 
 	if len(descriptors) < 1 {
@@ -59,7 +86,7 @@ func NewFileChangeNotifier(ctx context.Context, descriptors []DirFilesDescriptor
 
 	fcn := FileChangeNotifier{
 		dirFiles:         descriptors,
-		dirDescriptorMap: map[string]*regexp.Regexp{},
+		dirDescriptorMap: map[string][]string{},
 		refresh:          make(chan bool),
 	}
 
@@ -85,34 +112,38 @@ func NewFileChangeNotifier(ctx context.Context, descriptors []DirFilesDescriptor
 		if err != nil {
 			return nil, fmt.Errorf("fsnotify add error for dir %q: %w", dir, err)
 		}
-		fcn.dirDescriptorMap[dir] = desc.FileMatcher
+
+		// add the suffixes, prepending "." if necessary.
+		fcn.dirDescriptorMap[dir] = []string{}
+		for _, ix := range desc.FileSuffixes {
+			if len(ix) > 0 && ix[0] != byte('.') {
+				ix = string('.') + ix
+			}
+			fcn.dirDescriptorMap[dir] = append(fcn.dirDescriptorMap[dir], ix)
+		}
 	}
 
-	// internal eventChan
+	// internal eventChan (used for buffering)
 	eventChan := make(chan bool)
 
-	g := new(errgroup.Group)
+	g, ctx := errgroup.WithContext(ctx)
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	// This goroutine watches for *fsnotify.Watcher events.
+	g.Go(func() error {
 		for {
 			select {
 			case <-ctx.Done():
-				return
+				return ctx.Err()
 			case err, ok := <-fcn.watcher.Errors:
 				if !ok {
-					errRecorder(errors.New("unexpected close from watcher.Errors"))
-					return
+					return errors.New("unexpected close from watcher.Errors")
 				}
-				errRecorder(fmt.Errorf("unexpected notify error: %w", err))
-				return
+				return fmt.Errorf("unexpected notify error: %w", err)
 
+			// An event has been received.
 			case e, ok := <-fcn.watcher.Events:
 				if !ok {
-					errRecorder(errors.New("unexpected close from watcher.Events"))
-					return
+					return errors.New("unexpected close from watcher.Events")
 				}
 				// skip events that aren't writes
 				if !e.Has(fsnotify.Write) {
@@ -120,39 +151,42 @@ func NewFileChangeNotifier(ctx context.Context, descriptors []DirFilesDescriptor
 				}
 				dir := filepath.Dir(e.Name)
 				basename := filepath.Base(e.Name)
-				fmt.Printf("event for %s\n    string: %s\n", e.Name, e.String())
+				// fmt.Printf("event for %s\n    string: %s\n", e.Name, e.String())
 
-				// Find the file regexp filename matcher for the event
-				// directory, erroring if it can't be found. Emit an
-				// event if there is a match.
-				matcher, ok := fcn.dirDescriptorMap[dir]
-				if !ok {
-					errRecorder(fmt.Errorf("could not find matcher for dir %q", dir))
+				// ignore dot files
+				if len(basename) > 0 && basename[0] == '.' {
+					continue
 				}
-				if matcher.MatchString(basename) {
-					eventChan <- true
-				} else {
-					fmt.Printf("%q no match for %q\n", matcher.String(), basename)
+
+				// check the suffixes for this directory
+				suffixes, ok := fcn.dirDescriptorMap[dir]
+				if !ok {
+					return fmt.Errorf("could not find matcher for dir %q", dir)
+				}
+				for _, ix := range suffixes {
+					if strings.HasSuffix(strings.ToLower(basename), strings.ToLower(ix)) {
+						eventChan <- true
+					}
 				}
 			}
 		}
-	}()
+	})
 
 	// Simple buffer of double writes by editors like vim. This
 	// goroutine will exit if the context is Done or eventChan is
 	// closed.
-	go func() {
+	g.Go(func() error {
 		flush := false
 		timer := time.NewTicker(flushDuration)
 		for {
 			select {
 			case <-ctx.Done():
-				return
+				return ctx.Err()
 				// Stack writes in the same flushDuration, giving time for
 				// the writes to complete.
 			case _, ok := <-eventChan:
 				if !ok {
-					return
+					return nil
 				}
 				flush = true
 				timer.Reset(flushDuration)
@@ -163,35 +197,13 @@ func NewFileChangeNotifier(ctx context.Context, descriptors []DirFilesDescriptor
 				}
 			}
 		}
-	}()
+	})
 
 	go func() {
-		wg.Wait()
+		fcn.err = g.Wait()
 		close(eventChan)
-		defer fcn.watcher.Close()
+		_ = fcn.watcher.Close()
 	}()
 
 	return &fcn, nil
-
-}
-
-func main() {
-
-	watcher, err := NewFileChangeNotifier(
-		context.TODO(),
-		[]DirFilesDescriptor{
-			DirFilesDescriptor{"/tmp/zan", regexp.MustCompile("(?i)^[a-z0-9].+html$")},
-			DirFilesDescriptor{"/tmp/zib", regexp.MustCompile("^[A-Z].+txt$")},
-		},
-	)
-	if err != nil {
-		fmt.Println("error at base", err)
-		os.Exit(1)
-	}
-	for _ = range watcher.Refresh() {
-		fmt.Println("got!")
-	}
-	if watcher.Err != nil {
-		fmt.Println("unexpected err", err)
-	}
 }
