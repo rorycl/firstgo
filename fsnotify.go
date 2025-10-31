@@ -15,7 +15,7 @@ import (
 )
 
 // flushDuration sets the time given to wait for multiple editor writes
-const flushDuration time.Duration = 50 * time.Millisecond
+const flushDuration time.Duration = 25 * time.Millisecond
 
 // DirFilesDescriptor is a combination of a directory and files with the
 // specified suffixes to watch under it.
@@ -47,6 +47,21 @@ func (fcn *FileChangeNotifier) Refresh() iter.Seq2[bool, error] {
 			}
 		}
 	}
+}
+
+// Run is a blocking refresh checker.
+func (fcn *FileChangeNotifier) Run() bool {
+	return <-fcn.refresh
+}
+
+// Stop stops the event watcher.
+func (fcn *FileChangeNotifier) Stop() error {
+	err := fcn.watcher.Close()
+	if err != nil {
+		return fmt.Errorf("watcher close error: %w", err)
+	}
+	close(fcn.refresh)
+	return nil
 }
 
 // NewFileChangeNotifier registers and starts a FileChangeNotifier,
@@ -126,7 +141,7 @@ func NewFileChangeNotifier(ctx context.Context, descriptors []DirFilesDescriptor
 	// internal eventChan (used for buffering)
 	eventChan := make(chan bool)
 
-	g, ctx := errgroup.WithContext(ctx)
+	g, ctx := errgroup.WithContext(context.Background())
 
 	// This goroutine watches for *fsnotify.Watcher events.
 	g.Go(func() error {
@@ -182,8 +197,9 @@ func NewFileChangeNotifier(ctx context.Context, descriptors []DirFilesDescriptor
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
-				// Stack writes in the same flushDuration, giving time for
-				// the writes to complete.
+
+			// Stack writes in the same flushDuration, giving time for
+			// the writes to complete.
 			case _, ok := <-eventChan:
 				if !ok {
 					return nil
