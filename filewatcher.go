@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"iter"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,8 +13,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// flushDuration sets the time given to wait for multiple editor writes
-const flushDuration time.Duration = 25 * time.Millisecond
+// defaultFlushDuration sets the time given to wait for multiple editor writes
+const defaultFlushDuration time.Duration = 25 * time.Millisecond
 
 // DirFilesDescriptor is a combination of a directory and files with the
 // specified suffixes to watch under it.
@@ -30,79 +29,28 @@ type FileChangeNotifier struct {
 	dirFiles         []DirFilesDescriptor
 	dirDescriptorMap map[string][]string
 	watcher          *fsnotify.Watcher
-	refresh          chan bool
-	err              error
+	update           chan bool
+	flushDuration    time.Duration
 }
 
-// Refresh reports need for a refresh providing an iterator of bool,
-// error to catch both file change events and possible errors that may
-// occur during the file watching process. No error is deemed fatal and
-// it is up to the the consumer to catch errors and exit the loop
-// appropriately.
-func (fcn *FileChangeNotifier) Refresh() iter.Seq2[bool, error] {
-	return func(yield func(bool, error) bool) {
-		for r := range fcn.refresh {
-			if !yield(r, fcn.err) {
-				return
-			}
-		}
-	}
-}
-
-// Run is a blocking refresh checker.
-func (fcn *FileChangeNotifier) Run() bool {
-	return <-fcn.refresh
-}
-
-// Stop stops the event watcher.
-func (fcn *FileChangeNotifier) Stop() error {
-	err := fcn.watcher.Close()
-	if err != nil {
-		return fmt.Errorf("watcher close error: %w", err)
-	}
-	close(fcn.refresh)
-	return nil
-}
-
-// NewFileChangeNotifier registers and starts a FileChangeNotifier,
-// watching the specified directories for write events for files with
-// the specified suffixes. Consumers should iterate over [Refresh] to
-// receive events or errors.
+// NewFileChangeNotifier registers a FileChangeNotifier,
 //
 // Note that suffixes provided without the leading "dot" ('.') have this
 // prepended to the provided suffix.
 //
 // Refer to
 // https://github.com/fsnotify/fsnotify/blob/v1.8.0/cmd/fsnotify/file.go
-//
-// An example:
-//
-//	func main() {
-//		watcher, err := NewFileChangeNotifier(
-//			context.TODO(),
-//			[]DirFilesDescriptor{
-//				DirFilesDescriptor{"/tmp/a", []string{".html", "css"}},
-//				DirFilesDescriptor{"/tmp/b", []string{"txt"}},
-//			},
-//		)
-//		if err != nil {
-//			fmt.Println("error at base:", err)
-//			os.Exit(1)
-//		}
-//		for _, err = range watcher.Refresh() {
-//			fmt.Println(err, "got!")
-//		}
-//	}
-func NewFileChangeNotifier(ctx context.Context, descriptors []DirFilesDescriptor) (*FileChangeNotifier, error) {
+func NewFileChangeNotifier(descriptors []DirFilesDescriptor) (*FileChangeNotifier, error) {
 
 	if len(descriptors) < 1 {
-		return nil, fmt.Errorf("need at least one dir/filematch descriptor")
+		return nil, fmt.Errorf("at least one dir/filematch descriptor needed")
 	}
 
 	fcn := FileChangeNotifier{
 		dirFiles:         descriptors,
 		dirDescriptorMap: map[string][]string{},
-		refresh:          make(chan bool),
+		update:           make(chan bool),
+		flushDuration:    defaultFlushDuration,
 	}
 
 	var err error
@@ -137,11 +85,22 @@ func NewFileChangeNotifier(ctx context.Context, descriptors []DirFilesDescriptor
 			fcn.dirDescriptorMap[dir] = append(fcn.dirDescriptorMap[dir], ix)
 		}
 	}
+	return &fcn, nil
+}
 
-	// internal eventChan (used for buffering)
+// Watch watches the filesystem for the registered events, returning any
+// error found while doing so. Watch blocks, so needs to be run in a
+// goroutine.
+//
+// Watch watches the specified directories for write events for files
+// with the specified suffixes. Consumers should iterate over [Update]
+// to receive notice of a file write event requiring a refresh.
+func (fcn *FileChangeNotifier) Watch(ctx context.Context) error {
+
+	// eventChan is an internal chan used for buffering editor writes.
 	eventChan := make(chan bool)
 
-	g, ctx := errgroup.WithContext(context.Background())
+	g, ctx := errgroup.WithContext(ctx)
 
 	// This goroutine watches for *fsnotify.Watcher events.
 	g.Go(func() error {
@@ -192,7 +151,7 @@ func NewFileChangeNotifier(ctx context.Context, descriptors []DirFilesDescriptor
 	// closed.
 	g.Go(func() error {
 		flush := false
-		timer := time.NewTicker(flushDuration)
+		timer := time.NewTicker(fcn.flushDuration)
 		for {
 			select {
 			case <-ctx.Done():
@@ -205,21 +164,24 @@ func NewFileChangeNotifier(ctx context.Context, descriptors []DirFilesDescriptor
 					return nil
 				}
 				flush = true
-				timer.Reset(flushDuration)
+				timer.Reset(fcn.flushDuration)
 			case <-timer.C:
 				if flush {
-					fcn.refresh <- true
+					fcn.update <- true
 					flush = false
 				}
 			}
 		}
 	})
 
-	go func() {
-		fcn.err = g.Wait()
-		close(eventChan)
-		_ = fcn.watcher.Close()
-	}()
+	err := g.Wait()
+	close(eventChan)
+	close(fcn.update)
+	_ = fcn.watcher.Close()
+	return err
+}
 
-	return &fcn, nil
+// Update returns a channel signalling a file refresh event.
+func (fcn *FileChangeNotifier) Update() <-chan bool {
+	return fcn.update
 }
