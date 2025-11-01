@@ -9,22 +9,7 @@ import (
 	"time"
 )
 
-var dir1, dir2 string
-
-func mkdirs(t *testing.T) {
-	t.Helper()
-	var err error
-	dir1, err = os.MkdirTemp("", "firstgo_dir*")
-	if err != nil {
-		t.Fatal(err)
-	}
-	dir2, err = os.MkdirTemp("", "firstgo_dir*")
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func writeFiles(t *testing.T) {
+func writeFiles(t *testing.T, dir1, dir2 string) {
 	t.Helper()
 	for _, dirFile := range [][]string{
 		[]string{dir1, ".newfile.html"}, // not counted
@@ -44,22 +29,15 @@ func writeFiles(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		time.Sleep(flushDuration + 2) // accommodate flush interval
+		time.Sleep(flushDuration) // accommodate flush interval
 	}
 }
 
-func TestFileChangeNotifierRefresh(t *testing.T) {
+func TestFileChangeNotifier(t *testing.T) {
 
-	mkdirs(t)
+	dir1, dir2 := t.TempDir(), t.TempDir()
 
-	t.Cleanup(func() {
-		_ = os.RemoveAll(dir1)
-		_ = os.RemoveAll(dir2)
-	})
-
-	ctx, cancel := context.WithCancel(context.Background())
 	fcn, err := NewFileChangeNotifier(
-		ctx,
 		[]DirFilesDescriptor{
 			DirFilesDescriptor{dir1, []string{".html"}},
 			DirFilesDescriptor{dir2, []string{"txt"}},
@@ -68,64 +46,21 @@ func TestFileChangeNotifierRefresh(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error initialising fcn: %v", err)
 	}
-
-	counter := 0
-	go func() {
-		for _, err = range fcn.Refresh() {
-			counter++
-		}
-	}()
-
-	writeFiles(t)
-
-	// help check this
-	cancel()
-	err = fcn.Stop()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if got, want := counter, 3; got != want {
-		t.Errorf("counter got %d want %d", got, want)
-	}
-}
-
-func TestFileChangeNotifierRun(t *testing.T) {
-	mkdirs(t)
-
-	t.Cleanup(func() {
-		_ = os.RemoveAll(dir1)
-		_ = os.RemoveAll(dir2)
-	})
-
 	ctx, cancel := context.WithCancel(context.Background())
-	fcn, err := NewFileChangeNotifier(
-		ctx,
-		[]DirFilesDescriptor{
-			DirFilesDescriptor{dir1, []string{".html"}},
-			DirFilesDescriptor{dir2, []string{"txt"}},
-		},
-	)
-	if err != nil {
-		t.Fatalf("error initialising fcn: %v", err)
-	}
+	err = fcn.Run(ctx)
 
 	counter := 0
 	go func() {
-		for {
-			_ = fcn.Run() // blocking
+		for _ = range fcn.Refresh() {
 			counter++
 		}
 	}()
 
-	writeFiles(t)
-
-	// help check this
+	// write files then cancel the watcher
+	flushDuration = 5 * time.Millisecond
+	writeFiles(t, dir1, dir2)
+	time.Sleep(flushDuration)
 	cancel()
-	err = fcn.Stop()
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	if got, want := counter, 3; got != want {
 		t.Errorf("counter got %d want %d", got, want)
