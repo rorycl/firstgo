@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -26,6 +27,7 @@ type Applicator interface {
 	Serve(address, port, configFile string) error
 	Init(directory string) error
 	Demo(address, port string) error
+	ServeInDevelopment(address, port string, templateSuffixes []string, configFile string) error
 }
 
 // BuildCLI creates a cli app to run the capabilities provided by
@@ -75,6 +77,52 @@ func BuildCLI(app Applicator) *cli.Command {
 		Action: func(ctx context.Context, c *cli.Command) error {
 			configFile := c.Args().First()
 			return app.Serve(c.String("address"), c.String("port"), configFile)
+		},
+	}
+
+	serveInDevelopmentCmd := &cli.Command{
+		Name:      "development",
+		Usage:     "Serve from disk in development mode",
+		ArgsUsage: "CONFIG_FILE",
+		// use common flags
+		Flags: []cli.Flag{
+			addressFlag,
+			portFlag,
+			&cli.StringSliceFlag{
+				Name:    "suffixes",
+				Aliases: []string{"s"},
+				Value:   []string{"html"},
+				Usage:   "template directory suffixes",
+			},
+		},
+		// Before runs verification before "Action" is run
+		Before: func(ctx context.Context, c *cli.Command) (context.Context, error) {
+			if c.NArg() < 1 {
+				return ctx, fmt.Errorf("missing required argument: CONFIG_FILE")
+			}
+			configFile := c.Args().First()
+			if _, err := os.Stat(configFile); err != nil {
+				return ctx, fmt.Errorf("config file %q not found", configFile)
+			}
+			if a := net.ParseIP(c.String("address")); a == nil {
+				return ctx, fmt.Errorf("invalid IP address: %s", c.String("address"))
+			}
+			if _, err := strconv.Atoi(c.String("port")); err != nil {
+				return ctx, fmt.Errorf("invalid port: %s", c.String("port"))
+			}
+			if c.StringSlice("suffixes") == nil {
+				return ctx, errors.New("no suffixes provided")
+			}
+			for _, ix := range c.StringSlice("suffixes") {
+				if ix == "" {
+					return ctx, errors.New("empty suffix argument provided")
+				}
+			}
+			return ctx, nil
+		},
+		Action: func(ctx context.Context, c *cli.Command) error {
+			configFile := c.Args().First()
+			return app.ServeInDevelopment(c.String("address"), c.String("port"), c.StringSlice("suffixes"), configFile)
 		},
 	}
 
@@ -133,7 +181,7 @@ func BuildCLI(app Applicator) *cli.Command {
 		Name:        "firstgo",
 		Usage:       ShortUsage,
 		Description: LongDescription,
-		Commands:    []*cli.Command{serveCmd, initCmd, demoCmd},
+		Commands:    []*cli.Command{serveCmd, serveInDevelopmentCmd, initCmd, demoCmd},
 	}
 
 	// custom help template.

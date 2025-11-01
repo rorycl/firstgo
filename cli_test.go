@@ -13,6 +13,9 @@ type TestApplication struct{}
 func (t *TestApplication) Serve(address, port, configFile string) error {
 	return nil
 }
+func (t *TestApplication) ServeInDevelopment(address, port string, templateSuffixes []string, configFile string) error {
+	return nil
+}
 func (t *TestApplication) Init(directory string) error {
 	return nil
 }
@@ -93,6 +96,24 @@ func TestParseCLI(t *testing.T) {
 			name:            "demo invalid address",
 			args:            []string{"program", "demo", "-a", "url", "-p", "8001"},
 			wantErrContains: "invalid IP address",
+		},
+		{
+			name: "development all options",
+			args: []string{"program", "development", "-a", "127.0.0.1", "-p", "8001", "-s", "html", "config.yaml"},
+		},
+		{
+			name: "development only config",
+			args: []string{"program", "development", "config.yaml"},
+		},
+		{
+			name:            "development no config",
+			args:            []string{"program", "development", "--address", "127.0.0.2"},
+			wantErrContains: "missing required argument",
+		},
+		{
+			name:            "development no suffix",
+			args:            []string{"program", "development", "-a", "127.0.0.1", "-p", "8001", "-s", "", "config.yaml"},
+			wantErrContains: "empty suffix argument",
 		},
 	}
 	for _, tt := range tests {
