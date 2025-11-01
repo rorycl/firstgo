@@ -2,9 +2,11 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 const testFilePattern = "firstgo_apptest_*"
@@ -275,6 +277,16 @@ func TestApp(t *testing.T) {
 			mkConfig:    makeNotOKConfig,
 			errContains: "invalid Zone Target URL",
 		},
+		{
+			name:    "development server ok",
+			mode:    "development",
+			address: "127.0.0.1",
+			app: App{
+				interactive: true,
+				serveFunc:   func(*server) error { return nil },
+			},
+			mkConfig: makeOKConfig,
+		},
 	}
 
 	for _, tt := range tests {
@@ -300,6 +312,20 @@ func TestApp(t *testing.T) {
 				configYaml = []byte(config) // override embed
 				err = tt.app.Init("anything goes")
 				configYaml = orig
+			case "development":
+				cleanup := func(fileName string) func() {
+					return func() { _ = os.Remove(fileName) }
+				}
+				config := tt.mkConfig(t, true) // bool is for "asPath" mode
+				t.Cleanup(cleanup(config))
+				tt.app.stopper = make(chan struct{})
+				go func() {
+					a := time.After(25 * time.Millisecond)
+					<-a
+					fmt.Println("stopper fired")
+					tt.app.stopper <- struct{}{}
+				}()
+				err = tt.app.ServeInDevelopment(tt.address, "8000", []string{"html"}, config)
 			default:
 				t.Fatalf("mode %q not known", tt.mode)
 			}
