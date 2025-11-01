@@ -21,9 +21,15 @@ Download the `firstgo` binary for your platform from
 
 `firstgo` runs in `demo`, `init` or `serve` modes:
 
-* **demo**: `./firstgo demo` runs the embedded demo to show how `firstgo` works
-* **init**: `./firstgo init` initialises a new project by writing the demo project to disk
-* **serve**: `./firstgo serve config.yaml` serves project files from disk
+* **demo**: `./firstgo demo` runs the embedded demo to show how
+  `firstgo` works
+* **init**: `./firstgo init` initialises a new project by writing the
+  demo project to disk
+* **serve**: `./firstgo serve config.yaml` serves project files from
+  disk
+* **develop**: `./firstgo develop config.yaml` serves project files from
+  disk with automatic reloads after changes to `config.yaml` and
+  template files.
 
 To deploy your custom content in production, either copy your project
 files with the binary to your production setting, or copy your project
@@ -56,24 +62,26 @@ set out in [utils](./utils/).
 ./firstgo -h
 
 NAME:
-   firstgo - A web server for prototyping web interfaces from sketched images.
+   firstgo - A web server for prototyping web interfaces from sketches
 
 USAGE:
    firstgo [global options] [command]
 
 DESCRIPTION:
-   The server uses a config.yaml file to describe clickable zones on
-   images in assets/images to build an interactive website.
+   The firstgo server uses a config.yaml file to describe clickable
+   zones on images in assets/images to build an interactive website.
    
    For a demo with embedded assets and config file, use 'demo'.
    To start a new project, use 'init' to write the demo files to disk.
    To serve files on disk use 'serve'.
+   To serve files on disk in development mode use 'develop'.
 
 COMMANDS:
-   serve  Serve content on disk with the provided config
-   init   Initialize a new project in a directory
-   demo   Run the embedded demo server
-   help   Shows a list of commands or help for one command
+   serve    Serve content on disk
+   develop  Serve content on disk with automatic file reloads
+   init     Initialize a new project in a directory
+   demo     Run the embedded demo server
+   help     Shows a list of commands or help for one command
 
 Run 'firstgo [command] --help' for more information on a command.
 ```

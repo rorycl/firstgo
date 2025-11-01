@@ -99,20 +99,20 @@ func TestParseCLI(t *testing.T) {
 		},
 		{
 			name: "development all options",
-			args: []string{"program", "development", "-a", "127.0.0.1", "-p", "8001", "-s", "html", "config.yaml"},
+			args: []string{"program", "develop", "-a", "127.0.0.1", "-p", "8001", "-s", "html", "config.yaml"},
 		},
 		{
 			name: "development only config",
-			args: []string{"program", "development", "config.yaml"},
+			args: []string{"program", "develop", "config.yaml"},
 		},
 		{
 			name:            "development no config",
-			args:            []string{"program", "development", "--address", "127.0.0.2"},
+			args:            []string{"program", "develop", "--address", "127.0.0.2"},
 			wantErrContains: "missing required argument",
 		},
 		{
 			name:            "development no suffix",
-			args:            []string{"program", "development", "-a", "127.0.0.1", "-p", "8001", "-s", "", "config.yaml"},
+			args:            []string{"program", "develop", "-a", "127.0.0.1", "-p", "8001", "-s", "", "config.yaml"},
 			wantErrContains: "empty suffix argument",
 		},
 	}

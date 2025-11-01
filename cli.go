@@ -13,12 +13,13 @@ import (
 
 const (
 	ShortUsage      = "A web server for prototyping web interfaces from sketches"
-	LongDescription = `The server uses a config.yaml file to describe clickable zones on
-   images in assets/images to build an interactive website.
+	LongDescription = `The firstgo server uses a config.yaml file to describe clickable
+   zones on images in assets/images to build an interactive website.
    
    For a demo with embedded assets and config file, use 'demo'.
    To start a new project, use 'init' to write the demo files to disk.
-   To serve files on disk use 'serve'.`
+   To serve files on disk use 'serve'.
+   To serve files on disk in development mode use 'develop'.`
 )
 
 // Applicator is an interface to the central coordinator for the project
@@ -50,7 +51,7 @@ func BuildCLI(app Applicator) *cli.Command {
 
 	serveCmd := &cli.Command{
 		Name:      "serve",
-		Usage:     "Serve content on disk with the provided config",
+		Usage:     "Serve content on disk",
 		ArgsUsage: "CONFIG_FILE",
 		// use the common flags
 		Flags: []cli.Flag{
@@ -81,8 +82,8 @@ func BuildCLI(app Applicator) *cli.Command {
 	}
 
 	serveInDevelopmentCmd := &cli.Command{
-		Name:      "development",
-		Usage:     "Serve from disk in development mode",
+		Name:      "develop",
+		Usage:     "Serve content on disk with automatic file reloads",
 		ArgsUsage: "CONFIG_FILE",
 		// use common flags
 		Flags: []cli.Flag{
