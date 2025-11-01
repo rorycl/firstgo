@@ -443,7 +443,7 @@ func TestErrInvalidConfig(t *testing.T) {
 	if !errors.As(e, &eic) {
 		t.Fatal("expected ErrInvalidConfig")
 	}
-	if got, want := e.Error(), "invalid yaml configuration: hi"; got != want {
+	if got, want := e.Error(), "invalid config or template: hi"; got != want {
 		t.Errorf("error got %s want %s", got, want)
 	}
 }

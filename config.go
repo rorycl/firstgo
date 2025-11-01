@@ -24,7 +24,7 @@ type ErrInvalidConfig struct {
 
 // Error reports the error.
 func (e ErrInvalidConfig) Error() string {
-	return fmt.Sprintf("invalid yaml configuration: %s", e.info)
+	return fmt.Sprintf("invalid config or template: %s", e.info)
 }
 
 const (
