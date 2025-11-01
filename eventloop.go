@@ -10,7 +10,7 @@ import (
 type Msg string
 
 // A Cmd is a function that performs I/O and returns a Msg.
-type Cmd func() Msg
+type Cmd func(context.Context) Msg
 
 // A LabelledCmd is a command with a label used for command
 // dispatching.
@@ -76,7 +76,7 @@ func (e *EventLoop) Run(ctx context.Context) {
 			select {
 			case <-ctx.Done():
 				e.Stop()
-			case e.msgChan <- cmd():
+			case e.msgChan <- cmd(ctx):
 			}
 		}()
 	}

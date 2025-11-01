@@ -13,12 +13,15 @@ func TestEventLoop(t *testing.T) {
 
 	var countEvent int
 
-	startServerCmd := func() Msg {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	startServerCmd := func(ctx context.Context) Msg {
 		countEvent++
 		fmt.Println("> server starting")
 		return "SERVER_STARTED"
 	}
-	loadConfigCmd := func() Msg {
+	loadConfigCmd := func(ctx context.Context) Msg {
 		fmt.Println("> pretend load config")
 
 		s := rand.NewSource(time.Now().UnixNano())
@@ -30,12 +33,12 @@ func TestEventLoop(t *testing.T) {
 		fmt.Println("> config ok")
 		return "CONFIG_LOAD_OK"
 	}
-	fileWaitForUpdateCmd := func() Msg {
+	fileWaitForUpdateCmd := func(ctx context.Context) Msg {
 		fmt.Println("> waiting for a file update")
 		fmt.Println("> -------------------------")
 		return "FILE_UPDATED"
 	}
-	fileUpdateCmd := func() Msg {
+	fileUpdateCmd := func(ctx context.Context) Msg {
 		fmt.Println("> pretend receive file update")
 		fmt.Println("> pretend stopping server if running")
 		return "FILE_UPDATED"
@@ -52,8 +55,7 @@ func TestEventLoop(t *testing.T) {
 		fileWaitForUpdateCmd,
 	)
 	// update server started to exit on 4th "server restart"
-	ctx, cancel := context.WithCancel(context.Background())
-	el.cmdMap["SERVER_STARTED"] = func() Msg {
+	el.cmdMap["SERVER_STARTED"] = func(ctx context.Context) Msg {
 		countEvent++
 		if countEvent > 3 {
 			cancel()
