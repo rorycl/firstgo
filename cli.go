@@ -13,8 +13,9 @@ import (
 
 const (
 	ShortUsage      = "A web server for prototyping web interfaces from sketches"
-	LongDescription = `The firstgo server uses a config.yaml file to describe clickable
-   zones on images in assets/images to build an interactive website.
+	LongDescription = `The firstgo server uses a configuration yaml file to describe
+   clickable zones on images in assets/images to build an interactive
+   website.
    
    For a demo with embedded assets and config file, use 'demo'.
    To start a new project, use 'init' to write the demo files to disk.
@@ -82,15 +83,18 @@ func BuildCLI(app Applicator) *cli.Command {
 	}
 
 	serveInDevelopmentCmd := &cli.Command{
-		Name:      "develop",
-		Usage:     "Serve content on disk with automatic file reloads",
+		Name:  "develop",
+		Usage: "Serve content on disk with automatic file reloads",
+		Description: `Presently only the yaml file, with a '.yaml' extension, together with
+(by default) the files with a '.html' extension in templates are
+automatically reloaded. The latter can be changed with -s flags.`,
 		ArgsUsage: "CONFIG_FILE",
 		// use common flags
 		Flags: []cli.Flag{
 			addressFlag,
 			portFlag,
 			&cli.StringSliceFlag{
-				Name:    "suffixes",
+				Name:    "suffix",
 				Aliases: []string{"s"},
 				Value:   []string{"html"},
 				Usage:   "template directory suffixes",
@@ -111,10 +115,10 @@ func BuildCLI(app Applicator) *cli.Command {
 			if _, err := strconv.Atoi(c.String("port")); err != nil {
 				return ctx, fmt.Errorf("invalid port: %s", c.String("port"))
 			}
-			if c.StringSlice("suffixes") == nil {
+			if c.StringSlice("suffix") == nil {
 				return ctx, errors.New("no suffixes provided")
 			}
-			for _, ix := range c.StringSlice("suffixes") {
+			for _, ix := range c.StringSlice("suffix") {
 				if ix == "" {
 					return ctx, errors.New("empty suffix argument provided")
 				}
@@ -123,7 +127,7 @@ func BuildCLI(app Applicator) *cli.Command {
 		},
 		Action: func(ctx context.Context, c *cli.Command) error {
 			configFile := c.Args().First()
-			return app.ServeInDevelopment(c.String("address"), c.String("port"), c.StringSlice("suffixes"), configFile)
+			return app.ServeInDevelopment(c.String("address"), c.String("port"), c.StringSlice("suffix"), configFile)
 		},
 	}
 
@@ -186,7 +190,12 @@ func BuildCLI(app Applicator) *cli.Command {
 	}
 
 	// custom help template.
-	rootCmd.CustomRootCommandHelpTemplate = `NAME:
+	rootCmd.CustomRootCommandHelpTemplate = rootHelpTemplate
+
+	return rootCmd
+}
+
+var rootHelpTemplate = `NAME:
    {{.Name}} - {{.Usage}}
 
 USAGE:
@@ -200,6 +209,3 @@ COMMANDS:
 {{end}}
 Run '{{.Name}} [command] --help' for more information on a command.
 `
-
-	return rootCmd
-}

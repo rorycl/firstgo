@@ -1,5 +1,8 @@
 package main
 
+// Eventloop implements an ELM style event loop with Cmd commands
+// issuing string Msg messages.
+
 import (
 	"context"
 	"errors"
@@ -20,7 +23,8 @@ type LabelledCmd struct {
 }
 
 // EventLoop describes an event loop to execute a FSM determined by a
-// set of labelled commands and a start and default command.
+// set of labelled commands and a start and default fallthrough command
+// when no command in the cmdMap matches the supplied label.
 type EventLoop struct {
 	defaultCmd Cmd
 	startCmd   Cmd
@@ -51,8 +55,6 @@ func NewEventLoop(cmds []LabelledCmd, startCmd, defaultCmd Cmd) (*EventLoop, err
 		}
 		e.cmdMap[lc.label] = lc.cmd
 	}
-	// consider checking fsm labels -> msgs but msg not extractable from
-	// cmd.
 	return e, nil
 }
 

@@ -1,5 +1,8 @@
 package main
 
+// fileWatcher watches for writes to files in the specified directories
+// having the configured suffixes.
+
 import (
 	"context"
 	"errors"

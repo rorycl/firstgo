@@ -1,5 +1,12 @@
 package main
 
+// server implements a web server for firstgo with two fs.FS mounted
+// directories (at /static and /images) and templates rendered out of
+// /templates. Pre-configured endpoints for /health and /favicon.ico are
+// also provided. Other than / and /index (which are automatically
+// generated if these are not configured), the rest of the pages are
+// dynamically provisione based on the yaml config file.
+
 import (
 	"encoding/json"
 	"errors"

@@ -13,10 +13,10 @@ import (
 	"syscall"
 )
 
-// App is the main "plug point" for the application, making the two
-// modes of "Serve" (embedded and on disk) and "WriteAssets" injectable
-// into the cli flags package. If the interactive flag is set messages
-// are printed to the console.
+// App is the main "plug point" for the application, making the three
+// modes of "Serve" (embedded, on disk and development mode) and
+// "WriteAssets" injectable into the cli flags package. If the
+// interactive flag is set messages are printed to the console.
 type App struct {
 	interactive bool
 	serveFunc   func(*server) error
@@ -91,7 +91,9 @@ func (a *App) Init(dir string) error {
 }
 
 // ServeInDevelopment serves the service from disk in development mode,
-// using an extraordinarily elaborate event loop and filesystem watcher.
+// using an extraordinarily elaborate event loop and filesystem watcher
+// to reload the configuration and server on changes, waiting for
+// further file writes when an error occurs.
 func (a *App) ServeInDevelopment(address, port string, templateSuffixes []string, configFile string) error {
 
 	var srv *server
@@ -224,5 +226,4 @@ func (a *App) ServeInDevelopment(address, port string, templateSuffixes []string
 	el.Run(ctx)
 
 	return nil
-
 }

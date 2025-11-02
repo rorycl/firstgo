@@ -437,6 +437,7 @@ func TestConfigWriteEmbedded(t *testing.T) {
 
 }
 
+// TestErrInvalidConfig tests the custom error.
 func TestErrInvalidConfig(t *testing.T) {
 	e := ErrInvalidConfig{"hi"}
 	var eic ErrInvalidConfig

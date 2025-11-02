@@ -19,7 +19,7 @@ all-important domain concepts.
 Download the `firstgo` binary for your platform from
 [releases](https://github.com/rorycl/firstgo/releases).
 
-`firstgo` runs in `demo`, `init` or `serve` modes:
+`firstgo` runs in `demo`, `init`, `serve` or `develop` modes:
 
 * **demo**: `./firstgo demo` runs the embedded demo to show how
   `firstgo` works
@@ -28,8 +28,7 @@ Download the `firstgo` binary for your platform from
 * **serve**: `./firstgo serve config.yaml` serves project files from
   disk
 * **develop**: `./firstgo develop config.yaml` serves project files from
-  disk with automatic reloads after changes to `config.yaml` and
-  template files.
+  disk with automatic reloads of the yaml and template files.
 
 To deploy your custom content in production, either copy your project
 files with the binary to your production setting, or copy your project

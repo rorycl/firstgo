@@ -16,7 +16,7 @@ func main() {
 
 	// run
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
-		fmt.Println(err)
+		fmt.Println("error:", err)
 		os.Exit(1)
 	}
 }

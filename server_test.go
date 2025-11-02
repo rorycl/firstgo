@@ -116,6 +116,8 @@ func TestServer(t *testing.T) {
 	}
 }
 
+// TestServerServe checks if the server is actually triggered (albeit
+// once shutdown has already been registered).
 func TestServerServe(t *testing.T) {
 	s := initServer(t)
 

@@ -1,5 +1,10 @@
 package main
 
+// This file sets all of the configuration related items in the project,
+// particularly in relation to config.yaml but also how items are
+// represented in the resulting html pages. Validation of each described
+// "page" and its related clickable zones are performed here.
+
 import (
 	"bytes"
 	"embed"
@@ -28,8 +33,8 @@ func (e ErrInvalidConfig) Error() string {
 }
 
 const (
-	AssetDirName   = "assets"
-	ConfigFileName = "config.yaml"
+	AssetDirName   = "assets"      // TODO: fix to work with runtime path
+	ConfigFileName = "config.yaml" // TODO: fix to work with supplied config file
 )
 
 var RequiredAssetDirs []string = []string{

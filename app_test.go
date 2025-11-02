@@ -11,6 +11,7 @@ import (
 
 const testFilePattern = "firstgo_apptest_*"
 
+// writeConfig is a file writer helper.
 func writeConfig(t *testing.T, config []byte) string {
 	t.Helper()
 	tf, err := os.CreateTemp("", testFilePattern)
@@ -24,8 +25,8 @@ func writeConfig(t *testing.T, config []byte) string {
 	return tf.Name()
 }
 
-// makeOKConfig makes a temporary config file on disk or returns it as a
-// string.
+// makeOKConfig is a helper that makes a temporary config file on disk
+// or returns it as a string.
 func makeOKConfig(t *testing.T, asPath bool) string {
 	t.Helper()
 	config := `
@@ -63,8 +64,8 @@ pages:
 	return writeConfig(t, []byte(config))
 }
 
-// makeNotOKConfig makes a temporary, broken config file on disk or as a
-// string.
+// makeNotOKConfig is a helper that makes a temporary, broken config
+// file on disk or as a string.
 func makeNotOKConfig(t *testing.T, asPath bool) string {
 	t.Helper()
 	config := `
@@ -103,14 +104,15 @@ pages:
 
 }
 
-// make a non existant config (ignore asPath condition, not relevant to
-// demo mode).
+// makeNotExistentConfig is a helper to make a non existant config
+// (ignore asPath condition, not relevant to demo mode).
 func makeNotExistentConfig(t *testing.T, asPath bool) string {
 	filer := writeConfig(t, []byte(""))
 	_ = os.Remove(filer)
 	return filer
 }
 
+// TestApp is the main app test.
 func TestApp(t *testing.T) {
 
 	tests := []struct {
