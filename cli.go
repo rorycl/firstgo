@@ -13,14 +13,9 @@ import (
 
 const (
 	ShortUsage      = "A web server for prototyping web interfaces from sketches"
-	LongDescription = `The firstgo server uses a configuration yaml file to describe
-   clickable zones on images in assets/images to build an interactive
-   website.
-   
-   For a demo with embedded assets and config file, use 'demo'.
-   To start a new project, use 'init' to write the demo files to disk.
-   To serve files on disk use 'serve'.
-   To serve files on disk in development mode use 'develop'.`
+	LongDescription = `The firstgo server uses a configuration yaml file with templates in
+   assets/templates and css in assets/static to describe clickable zones
+   on images in assets/images to create an interactive website.`
 )
 
 // Applicator is an interface to the central coordinator for the project
@@ -133,7 +128,7 @@ automatically reloaded. The latter can be changed with -s flags.`,
 
 	initCmd := &cli.Command{
 		Name:  "init",
-		Usage: "Initialize a new project in a directory",
+		Usage: "Initialize a new project from the embedded demo assets",
 		Before: func(ctx context.Context, c *cli.Command) (context.Context, error) {
 			dir := c.String("directory")
 			d, err := os.Stat(dir)
@@ -160,7 +155,7 @@ automatically reloaded. The latter can be changed with -s flags.`,
 
 	demoCmd := &cli.Command{
 		Name:                  "demo",
-		Usage:                 "Run the embedded demo server",
+		Usage:                 "Run the demo server with embedded assets",
 		EnableShellCompletion: true,
 		// use the common flags
 		Flags: []cli.Flag{
@@ -186,7 +181,7 @@ automatically reloaded. The latter can be changed with -s flags.`,
 		Name:        "firstgo",
 		Usage:       ShortUsage,
 		Description: LongDescription,
-		Commands:    []*cli.Command{serveCmd, serveInDevelopmentCmd, initCmd, demoCmd},
+		Commands:    []*cli.Command{demoCmd, initCmd, serveCmd, serveInDevelopmentCmd},
 	}
 
 	// custom help template.
@@ -199,7 +194,7 @@ var rootHelpTemplate = `NAME:
    {{.Name}} - {{.Usage}}
 
 USAGE:
-   {{.Name}} [global options] [command]
+   {{.Name}} [command] [options]
 
 DESCRIPTION:
    {{.Description}}

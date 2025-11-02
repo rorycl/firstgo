@@ -64,22 +64,18 @@ NAME:
    firstgo - A web server for prototyping web interfaces from sketches
 
 USAGE:
-   firstgo [global options] [command]
+   firstgo [command] [options]
 
 DESCRIPTION:
-   The firstgo server uses a config.yaml file to describe clickable
-   zones on images in assets/images to build an interactive website.
-   
-   For a demo with embedded assets and config file, use 'demo'.
-   To start a new project, use 'init' to write the demo files to disk.
-   To serve files on disk use 'serve'.
-   To serve files on disk in development mode use 'develop'.
+   The firstgo server uses a configuration yaml file with templates in
+   assets/templates and css in assets/static to describe clickable zones
+   on images in assets/images to create an interactive website.
 
 COMMANDS:
+   demo     Run the demo server with embedded assets
+   init     Initialize a new project from the embedded demo assets
    serve    Serve content on disk
    develop  Serve content on disk with automatic file reloads
-   init     Initialize a new project in a directory
-   demo     Run the embedded demo server
    help     Shows a list of commands or help for one command
 
 Run 'firstgo [command] --help' for more information on a command.
