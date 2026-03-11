@@ -309,14 +309,14 @@ pages:
 		t.Fatal(err)
 	}
 	want := "Detail Home " // the reverse of the pages
-	got := ""
+	var got strings.Builder
 	for _, p := range cfg.Pages {
 		for _, z := range p.Zones {
-			got += fmt.Sprintf("%s ", z.TargetTitle)
+			got.WriteString(fmt.Sprintf("%s ", z.TargetTitle))
 		}
 	}
-	if got != want {
-		t.Errorf("got %s want %s", got, want)
+	if got.String() != want {
+		t.Errorf("got %s want %s", got.String(), want)
 	}
 }
 
@@ -359,13 +359,13 @@ pages:
 		t.Fatal(err)
 	}
 	want := `<p><strong>hi</strong> there <a href="./man">old</a></p>`
-	got := ""
+	var got strings.Builder
 	for _, p := range cfg.Pages {
 		if p.NoteHTML != "" {
-			got += string(p.NoteHTML)
+			got.WriteString(string(p.NoteHTML))
 		}
 	}
-	if diff := cmp.Diff(strings.TrimSpace(got), want); diff != "" {
+	if diff := cmp.Diff(strings.TrimSpace(got.String()), want); diff != "" {
 		t.Error(diff)
 	}
 }
@@ -383,8 +383,8 @@ func recursiveFSPrinter(t *testing.T, fi fs.FS, addFiles ...string) string {
 		if err != nil {
 			return err
 		}
-		pathParts := strings.Split(path, "/")
-		for _, pp := range pathParts {
+		pathParts := strings.SplitSeq(path, "/")
+		for pp := range pathParts {
 			for _, p := range pathStrings {
 				if p == pp {
 					if _, err := s.WriteString(fmt.Sprintf("%s\n", path)); err != nil {
