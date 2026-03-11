@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"slices"
 	"strconv"
 
 	"github.com/urfave/cli/v3"
@@ -113,10 +114,8 @@ automatically reloaded. The latter can be changed with -s flags.`,
 			if c.StringSlice("suffix") == nil {
 				return ctx, errors.New("no suffixes provided")
 			}
-			for _, ix := range c.StringSlice("suffix") {
-				if ix == "" {
-					return ctx, errors.New("empty suffix argument provided")
-				}
+			if slices.Contains(c.StringSlice("suffix"), "") {
+				return ctx, errors.New("empty suffix argument provided")
 			}
 			return ctx, nil
 		},
